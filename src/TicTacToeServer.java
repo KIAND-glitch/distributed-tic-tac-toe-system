@@ -1,7 +1,5 @@
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +14,6 @@ public class TicTacToeServer extends UnicastRemoteObject implements TicTacToe {
         super();
         players = new HashMap<>();
         board = new char[3][3];
-        // does this automatically make the chars of the board 0
         currentPlayer = null;
         gameChars = new HashMap<>();
     }
@@ -33,36 +30,8 @@ public class TicTacToeServer extends UnicastRemoteObject implements TicTacToe {
         return false;
     }
 
-
-    @Override
-    public String makeMove(int row, int col, String username) throws RemoteException {
-//        if (!username.equals(currentPlayer)) {
-//            ''
-//            return currentPlayer;
-//        }
-
-        if (row < 0 || row >= 3 || col < 0 || col >= 3) {
-            System.out.println("here is the error");
-            return currentPlayer;
-        }
-
-        if (board[row][col] == 0) {
-            char symbol = gameChars.get(username);
-            board[row][col] = symbol;
-
-            // Switch to the other player's turn
-            currentPlayer = (username.equals(players.keySet().toArray()[0])) ? players.keySet().toArray()[1].toString() : players.keySet().toArray()[0].toString();
-
-            return currentPlayer;
-        }
-        System.out.println("last line");
-        return currentPlayer;
-    }
-
-
     @Override
     public String startGame(String player1, String player2) throws RemoteException {
-        // Assign player 1 'X' and player 2 'O' randomly
         if (Math.random() < 0.5) {
             gameChars.put(player1, 'X');
             gameChars.put(player2, 'O');
@@ -75,6 +44,63 @@ public class TicTacToeServer extends UnicastRemoteObject implements TicTacToe {
         System.out.println("game chars" + gameChars);
         return currentPlayer;
     }
+
+    @Override
+    public boolean makeMove(int row, int col, String username) throws RemoteException {
+
+        if (row < 0 || row >= 3 || col < 0 || col >= 3) {
+            System.out.println("here is the error");
+            return false;
+        }
+
+        if (board[row][col] == 0) {
+            char symbol = gameChars.get(username);
+            board[row][col] = symbol;
+            return true;
+        }
+        System.out.println("last line");
+        return false;
+    }
+
+    @Override
+    public Character evaluateGame() throws RemoteException {
+        for (int i = 0; i < 3; i++) {
+            // row win
+            if (board[i][0] == board[i][1] && board[i][1] == board[i][2] && board[i][0] != 0) {
+                return board[i][0];
+            }
+            // column win
+            if (board[0][i] == board[1][i] && board[1][i] == board[2][i] && board[0][i] != 0) {
+                return board[0][i];
+            }
+        }
+
+        // diagonal win
+        if (board[0][0] == board[1][1] && board[1][1] == board[2][2] && board[0][0] != 0) {
+            return board[0][0];
+        }
+        if (board[0][2] == board[1][1] && board[1][1] == board[2][0] && board[0][2] != 0) {
+            return board[0][2];
+        }
+
+        // Check for a draw
+        boolean isBoardFull = true;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (board[i][j] == 0) {
+                    isBoardFull = false;
+                    break;
+                }
+            }
+        }
+        if (isBoardFull) {
+            return 'D';
+        }
+
+        // Game is still ongoing
+        return 'C';
+    }
+
 
 
     @Override

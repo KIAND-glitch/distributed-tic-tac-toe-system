@@ -8,9 +8,12 @@ public interface TicTacToe extends Remote {
 
     // game functionality
     String startGame(String player1, String player2) throws RemoteException;
-    String makeMove(int row, int col, String username) throws RemoteException;
+    boolean makeMove(int row, int col, String username) throws RemoteException;
+    char[][] getGameBoard() throws RemoteException;
+    Character evaluateGame() throws RemoteException;
+
+    // chat functionality
     void sendChatMessage(String message, String username) throws RemoteException;
     void receiveChatMessage(String message) throws RemoteException;
-    char[][] getGameBoard() throws RemoteException;
 }
 

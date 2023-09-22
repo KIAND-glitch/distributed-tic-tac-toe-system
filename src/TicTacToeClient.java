@@ -5,7 +5,6 @@ import java.util.Scanner;
 public class TicTacToeClient {
     private TicTacToe server;
     private String username;
-    private char playerSymbol;
 
     public TicTacToeClient(String serverIP, int serverPort, String username) {
         try {
@@ -13,37 +12,50 @@ public class TicTacToeClient {
             this.username = username;
 
             // Register the player and get their symbol
-            if (! (server.registerPlayer("player1") && server.registerPlayer("player2"))) {
+            if (!(server.registerPlayer("player1") && server.registerPlayer("player2"))) {
                 System.out.println("players not registered");
             }
 
-
             // Start the game
             String startingPlayer = server.startGame("player1", "player2");
-//            System.out.println("Game started!");
-//            System.out.println("Player 1: X");
-//            System.out.println("Player 2: O");
+            System.out.println("Game started!");
+
             System.out.println(startingPlayer + "'s turn.");
 
+            String currentPlayer = startingPlayer;
             // Game loop
             Scanner scanner = new Scanner(System.in);
-            while (true) {
+
+            boolean gameInProgress = true;
+
+            while (gameInProgress) {
                 System.out.println("Enter location (row and column): ");
                 int row = scanner.nextInt();
                 int col = scanner.nextInt();
-                scanner.nextLine();  // Consume newline character
+                scanner.nextLine();
 
-                System.out.println("row is " + row);
-                System.out.println("col is " + col);
+                boolean validMove =  server.makeMove(row, col, currentPlayer);
+                while (!validMove) {
+                    System.out.println("Invalid move: please try again");
+                    System.out.println("Enter location (row and column): ");
+                    row = scanner.nextInt();
+                    col = scanner.nextInt();
+                    validMove =  server.makeMove(row, col, currentPlayer);
+                }
 
-                String nextPlayer = server.makeMove(row, col, startingPlayer);
-                System.out.println(nextPlayer);
-//                if (!nextPlayer.equals(username)) {
-//                    System.out.println("Invalid move. Try again.");
-//                } else {
-                    printGameBoard();
-                    System.out.println(nextPlayer + "'s turn.");
-//                }
+                printGameBoard();
+
+                char state = server.evaluateGame();
+                if (state == 'D') {
+                    System.out.println("Game draw");
+                    gameInProgress = false;
+                } else if (state == 'X' | state == 'O') {
+                    System.out.println(currentPlayer + " won");
+                    gameInProgress = false;
+                } else {
+                    currentPlayer = currentPlayer.equals("player1") ? "player2" : "player1";
+                    System.out.println(currentPlayer + "'s turn.");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -63,7 +75,7 @@ public class TicTacToeClient {
     public static void main(String[] args) {
         String serverIP = "localhost";
         int serverPort = 1099;
-        String username = "Player1"; // You can set the username for Player2 accordingly.
+        String username = "Player1";
 
         TicTacToeClient client = new TicTacToeClient(serverIP, serverPort, username);
     }
