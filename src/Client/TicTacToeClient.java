@@ -6,41 +6,46 @@ import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Scanner;
 
 public class TicTacToeClient extends UnicastRemoteObject implements ClientCallback {
 
-    private ServerInterface server; // Assuming you've defined a ServerInterface for the server's RMI methods.
+    private ServerInterface server;
     private String playerName;
-    private char playerSymbol;
+    private String opponentName;
+    private String playerSymbol;
+    private String opponentSymbol;
     private boolean isExported = false;
     private char[][] board = new char[3][3];
+    private boolean myTurn = false;
 
     public TicTacToeClient(String playerName) throws Exception {
         this.playerName = playerName;
-
-        // Connect to the server
         server = (ServerInterface) Naming.lookup("rmi://localhost/TicTacToeServer");
 
         try {
             UnicastRemoteObject.unexportObject(this, true);
         } catch (NoSuchObjectException e) {
-            // Handle exception or print stack trace
             e.printStackTrace();
         }
 
         if (!isExported) {
-            // Register this client's callback with the server
             ClientCallback clientStub = (ClientCallback) UnicastRemoteObject.exportObject(this, 0);
             server.registerPlayer(playerName, clientStub);
             isExported = true;
         }
+
+        playGame(playerName);
+    }
+
+    @Override
+    public void notifyTurn() throws RemoteException {
+        myTurn = true;
     }
 
     @Override
     public void gameReady(String opponentName) throws RemoteException {
-        // Here you'd probably update the UI to reflect that the game has started.
         System.out.println("Matched with: " + opponentName);
-        // Initialize or reset the game board
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 board[i][j] = '-';
@@ -50,7 +55,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     @Override
     public void updateBoard(int row, int col, char symbol) throws RemoteException {
-        // Update the local game board and refresh the display/UI.
         board[row][col] = symbol;
         displayBoard();
     }
@@ -60,13 +64,20 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         System.out.println(message);
     }
 
-    public void makeMove(int row, int col) throws RemoteException {
-        // This method is called when the user wants to make a move.
-        server.makeMove(playerName, row, col);
+    @Override
+    public void gameStarted(String opponentName) throws RemoteException {
+        System.out.println("Game started with " + opponentName);
+        this.opponentName = opponentName;
+    }
+
+    @Override
+    public void assignCharacter(String character, String startMessage) throws RemoteException {
+        System.out.println("You are assigned: " + character);
+        System.out.println(startMessage);
+        this.playerSymbol = character;
     }
 
     private void displayBoard() {
-        // This is just a simple console print for the board. In a real application, you'd update the GUI.
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 System.out.print(board[i][j] + " ");
@@ -75,10 +86,70 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         }
     }
 
+    private void playGame(String playerName) throws RemoteException {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            if (myTurn) {
+                boolean validMove = false;
+                while (!validMove) {
+                    System.out.println("Enter location (row and column): ");
+                    int row = scanner.nextInt();
+                    int col = scanner.nextInt();
+                    scanner.nextLine();
+
+                    try {
+                        validMove = server.makeMove(playerName, row, col);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+
+                    if (!validMove) {
+                        System.out.println("Invalid move: please try again");
+                    }
+                }
+
+                displayBoard();
+
+                char state = '\0';
+                try {
+                    state = server.evaluateGame();
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+
+                if (state == 'D') {
+                    System.out.println("Game draw");
+                    break;
+                } else if (state == 'X' || state == 'O') {
+                    String winner = (state == this.playerSymbol.charAt(0)) ? this.playerName : "Opponent";
+                    System.out.println(winner + " won");
+                    break;
+                } else {
+                    myTurn = false;
+
+                }
+            } else {
+                System.out.println("Waiting for other player's move...");
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     public static void main(String[] args) {
-        // This is a basic main method to run the client.
+        if (args.length < 1) {
+            System.out.println("Usage: java TicTacToeClient <username>");
+            return;
+        }
+
+        String playerName = args[0];
+
         try {
-            new TicTacToeClient("PlayerName"); // You'd get the player's name dynamically, perhaps from command-line or a GUI input.
+            new TicTacToeClient(playerName);
         } catch (Exception e) {
             e.printStackTrace();
         }
