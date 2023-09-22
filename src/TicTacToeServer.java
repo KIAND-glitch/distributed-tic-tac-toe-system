@@ -10,30 +10,21 @@ public class TicTacToeServer extends UnicastRemoteObject implements TicTacToe {
     private char[][] board;
     private String currentPlayer;
 
+    private Map<String, Character> gameChars;
+
     public TicTacToeServer() throws RemoteException {
         super();
         players = new HashMap<>();
         board = new char[3][3];
+        // does this automatically make the chars of the board 0
         currentPlayer = null;
-    }
-
-    public static void main(String[] args) {
-        try {
-            java.rmi.registry.LocateRegistry.createRegistry(1099);
-            TicTacToeServer obj = new TicTacToeServer();
-            java.rmi.Naming.rebind("TicTacToeServer", obj);
-            System.out.println("Server is running...");
-        } catch (Exception e) {
-            System.err.println("TicTacToeServer exception: " + e.getMessage());
-            e.printStackTrace();
-        }
+        gameChars = new HashMap<>();
     }
 
     @Override
     public boolean registerPlayer(String username) throws RemoteException {
         if (!players.containsKey(username)) {
             players.put(username, username);
-            players.put("second player", "second player");
             if (currentPlayer == null) {
                 currentPlayer = username;
             }
@@ -42,25 +33,48 @@ public class TicTacToeServer extends UnicastRemoteObject implements TicTacToe {
         return false;
     }
 
+
     @Override
-    public boolean makeMove(int row, int col, String username) throws RemoteException {
-        if (!username.equals(currentPlayer)) {
-            return false;
-        }
+    public String makeMove(int row, int col, String username) throws RemoteException {
+//        if (!username.equals(currentPlayer)) {
+//            ''
+//            return currentPlayer;
+//        }
 
         if (row < 0 || row >= 3 || col < 0 || col >= 3) {
-            return false;
+            System.out.println("here is the error");
+            return currentPlayer;
         }
 
         if (board[row][col] == 0) {
-            char symbol = (currentPlayer.equals(players.keySet().toArray()[0])) ? 'X' : 'O';
+            char symbol = gameChars.get(username);
             board[row][col] = symbol;
-            currentPlayer = (String) ((currentPlayer.equals(players.keySet().toArray()[0])) ? players.keySet().toArray()[1] : players.keySet().toArray()[0]);
-            return true;
+
+            // Switch to the other player's turn
+            currentPlayer = (username.equals(players.keySet().toArray()[0])) ? players.keySet().toArray()[1].toString() : players.keySet().toArray()[0].toString();
+
+            return currentPlayer;
         }
-        return false;
+        System.out.println("last line");
+        return currentPlayer;
     }
 
+
+    @Override
+    public String startGame(String player1, String player2) throws RemoteException {
+        // Assign player 1 'X' and player 2 'O' randomly
+        if (Math.random() < 0.5) {
+            gameChars.put(player1, 'X');
+            gameChars.put(player2, 'O');
+            currentPlayer = player1;
+        } else {
+            gameChars.put(player1, 'O');
+            gameChars.put(player2, 'X');
+            currentPlayer = player2;
+        }
+        System.out.println("game chars" + gameChars);
+        return currentPlayer;
+    }
 
 
     @Override
@@ -76,5 +90,17 @@ public class TicTacToeServer extends UnicastRemoteObject implements TicTacToe {
     @Override
     public char[][] getGameBoard() throws RemoteException {
         return board;
+    }
+
+    public static void main(String[] args) {
+        try {
+            java.rmi.registry.LocateRegistry.createRegistry(1099);
+            TicTacToeServer obj = new TicTacToeServer();
+            java.rmi.Naming.rebind("TicTacToeServer", obj);
+            System.out.println("Server is running...");
+        } catch (Exception e) {
+            System.err.println("TicTacToeServer exception: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
