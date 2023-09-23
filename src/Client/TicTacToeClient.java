@@ -13,10 +13,9 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private ServerInterface server;
     private String playerName;
     private String opponentName;
-    private String playerSymbol;
-    private String opponentSymbol;
+    private Character playerSymbol;
+    private Character opponentSymbol;
     private boolean isExported = false;
-    private char[][] board = new char[3][3];
     private boolean myTurn = false;
 
     public TicTacToeClient(String playerName) throws Exception {
@@ -33,30 +32,13 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             ClientCallback clientStub = (ClientCallback) UnicastRemoteObject.exportObject(this, 0);
             server.registerPlayer(playerName, clientStub);
             isExported = true;
+            playGame(playerName);
         }
-
-        playGame(playerName);
     }
 
     @Override
     public void notifyTurn() throws RemoteException {
         myTurn = true;
-    }
-
-    @Override
-    public void gameReady(String opponentName) throws RemoteException {
-        System.out.println("Matched with: " + opponentName);
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                board[i][j] = '-';
-            }
-        }
-    }
-
-    @Override
-    public void updateBoard(int row, int col, char symbol) throws RemoteException {
-        board[row][col] = symbol;
-        displayBoard();
     }
 
     @Override
@@ -68,22 +50,15 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     public void gameStarted(String opponentName) throws RemoteException {
         System.out.println("Game started with " + opponentName);
         this.opponentName = opponentName;
+        this.opponentSymbol = this.playerSymbol == 'X' ? 'O' : 'X';
+
     }
 
     @Override
-    public void assignCharacter(String character, String startMessage) throws RemoteException {
+    public void assignCharacter(Character character, String startMessage) throws RemoteException {
         System.out.println("You are assigned: " + character);
         System.out.println(startMessage);
         this.playerSymbol = character;
-    }
-
-    private void displayBoard() {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                System.out.print(board[i][j] + " ");
-            }
-            System.out.println();
-        }
     }
 
     private void playGame(String playerName) throws RemoteException {
@@ -109,8 +84,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     }
                 }
 
-                displayBoard();
-
                 char state = '\0';
                 try {
                     state = server.evaluateGame();
@@ -122,7 +95,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     System.out.println("Game draw");
                     break;
                 } else if (state == 'X' || state == 'O') {
-                    String winner = (state == this.playerSymbol.charAt(0)) ? this.playerName : "Opponent";
+                    String winner = (state == this.playerSymbol) ? this.playerName : "Opponent";
                     System.out.println(winner + " won");
                     break;
                 } else {

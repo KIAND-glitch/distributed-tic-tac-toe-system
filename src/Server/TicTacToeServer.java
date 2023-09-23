@@ -14,7 +14,6 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     private class PlayerInfo {
         ClientCallback stub;
         char character;
-
         PlayerInfo(ClientCallback stub, char character) {
             this.stub = stub;
             this.character = character;
@@ -22,7 +21,6 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     }
 
     private Map<String, PlayerInfo> players = new HashMap<>();
-    private String waitingPlayer = null;
     private char[][] board = new char[3][3];
     private String currentPlayer = null;
 
@@ -39,6 +37,7 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         for (String player : players.keySet()) {
             if (!player.equals(currentPlayer)) {
                 players.get(player).stub.notifyTurn();
+                currentPlayer = player;
                 break;
             }
         }
@@ -73,8 +72,8 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         players.get(playerNames[1]).character = player2Char;
 
         try {
-            players.get(playerNames[0]).stub.assignCharacter(String.valueOf(player1Char), isFirstPlayerStarts ? "You start first!" : "Wait for Player 2 to start.");
-            players.get(playerNames[1]).stub.assignCharacter(String.valueOf(player2Char), isFirstPlayerStarts ? "Wait for Player 1 to start." : "You start first!");
+            players.get(playerNames[0]).stub.assignCharacter(player1Char, isFirstPlayerStarts ? "You start first!" : "Wait for Player 2 to start.");
+            players.get(playerNames[1]).stub.assignCharacter(player2Char, isFirstPlayerStarts ? "Wait for Player 1 to start." : "You start first!");
 
             if (isFirstPlayerStarts) {
                 currentPlayer = playerNames[0];
@@ -98,15 +97,24 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
             for (String player : players.keySet()) {
                 if (!player.equals(playerName)) {
-                    players.get(player).stub.updateBoard(row, col, board[row][col]);
+                    board[row][col] = players.get(player).character;
                     break;
                 }
             }
-
+            printGameBoard();
             notifyNextPlayer();
             return true;
         }
         return false;
+    }
+
+    private void printGameBoard() throws RemoteException {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                System.out.print(board[i][j] + " ");
+            }
+            System.out.println();
+        }
     }
 
     @Override
