@@ -113,6 +113,17 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         }
     }
 
+    @Override
+    public void displayBoard(char[][] board ) throws RemoteException {
+        // This is just a simple console print for the board. In a real application, you'd update the GUI.
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                System.out.print(board[i][j] + " ");
+            }
+            System.out.println();
+        }
+    }
+
     public static void main(String[] args) {
         if (args.length < 1) {
             System.out.println("Usage: java TicTacToeClient <username>");

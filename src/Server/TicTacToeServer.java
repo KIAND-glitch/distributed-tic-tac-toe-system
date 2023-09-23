@@ -43,6 +43,13 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         }
     }
 
+    private void displayPlayerBoards() throws RemoteException {
+        for (String player : players.keySet()) {
+            players.get(player).stub.displayBoard(board);
+        }
+    }
+
+
     public synchronized void registerPlayer(String playerName, ClientCallback clientStub) throws RemoteException {
         if (players.size() >= 2) {
             throw new RemoteException("Room is already full!");
@@ -101,7 +108,8 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                     break;
                 }
             }
-            printGameBoard();
+//            printGameBoard();
+            displayPlayerBoards();
             notifyNextPlayer();
             return true;
         }

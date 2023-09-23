@@ -9,4 +9,5 @@ public interface ClientCallback extends Remote {
     public void gameStarted(String opponentName) throws RemoteException;
     public void assignCharacter(Character character, String startMessage) throws RemoteException;
     public void notifyTurn() throws RemoteException;
+    public void displayBoard(char[][] board) throws RemoteException;
 }
