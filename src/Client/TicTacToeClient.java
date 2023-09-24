@@ -66,41 +66,32 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
         while (true) {
             if (myTurn) {
-                boolean validMove = false;
-                while (!validMove) {
+                char state = 'I';  // Assume the move is invalid by default
+                while (state == 'I') {
                     System.out.println("Enter location (row and column): ");
                     int row = scanner.nextInt();
                     int col = scanner.nextInt();
                     scanner.nextLine();
 
                     try {
-                        validMove = server.makeMove(playerName, row, col);
+                        state = server.makeMove(playerName, row, col);
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }
 
-                    if (!validMove) {
+                    if (state == 'I') {
                         System.out.println("Invalid move: please try again");
                     }
-                }
-
-                char state = '\0';
-                try {
-                    state = server.evaluateGame();
-                } catch (RemoteException e) {
-                    e.printStackTrace();
                 }
 
                 if (state == 'D') {
                     System.out.println("Game draw");
                     break;
-                } else if (state == 'X' || state == 'O') {
-                    String winner = (state == this.playerSymbol) ? this.playerName : "Opponent";
-                    System.out.println(winner + " won");
+                } else if (state == 'W') {
+                    System.out.println("You won!");
                     break;
                 } else {
-                    myTurn = false;
-
+                    myTurn = false;  // state == 'N', so it's not the client's turn anymore
                 }
             } else {
                 System.out.println("Waiting for other player's move...");
@@ -112,6 +103,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
         }
     }
+
 
     @Override
     public void displayBoard(char[][] board ) throws RemoteException {
