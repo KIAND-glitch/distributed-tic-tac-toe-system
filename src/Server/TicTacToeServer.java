@@ -26,6 +26,8 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         private char[][] board = new char[3][3];
         private String currentPlayer;
 
+        private String[] playerChat;
+
         public GameSession(String player1, PlayerInfo info1, String player2, PlayerInfo info2) {
             players.put(player1, info1);
             players.put(player2, info2);

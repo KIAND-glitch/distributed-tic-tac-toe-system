@@ -23,6 +23,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private JFrame frame;
     private JButton[][] buttons = new JButton[3][3];
     private JTextArea chatArea;
+    private JTextField chatInput;
+    private JButton sendButton;
 
     public TicTacToeClient(String playerName) throws Exception {
         this.playerName = playerName;
@@ -64,13 +66,43 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         chatArea = new JTextArea();
         chatArea.setEditable(false);
         JScrollPane chatScrollPane = new JScrollPane(chatArea);
-        chatScrollPane.setPreferredSize(new Dimension(200, 400));
+
+        // Chat input field and send button
+        chatInput = new JTextField(15);
+        sendButton = new JButton("Send");
+        sendButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sendMessage();
+            }
+        });
+
+        JPanel chatBottomPanel = new JPanel();
+        chatBottomPanel.setLayout(new BorderLayout());
+        chatBottomPanel.add(chatInput, BorderLayout.CENTER);
+        chatBottomPanel.add(sendButton, BorderLayout.EAST);
+
+        JPanel chatPanel = new JPanel(new BorderLayout());
+        chatPanel.setPreferredSize(new Dimension(200, 400));
+        chatPanel.add(chatScrollPane, BorderLayout.CENTER);
+        chatPanel.add(chatBottomPanel, BorderLayout.SOUTH);
 
         frame.getContentPane().add(boardPanel, BorderLayout.WEST);
-        frame.getContentPane().add(chatScrollPane, BorderLayout.EAST);
+        frame.getContentPane().add(chatPanel, BorderLayout.EAST);
 
         frame.pack();
         frame.setVisible(true);
+    }
+
+    private void sendMessage() {
+        String message = chatInput.getText().trim();
+        if (!message.isEmpty()) {
+            chatArea.append("You: " + message + "\n");
+            chatInput.setText("");
+
+            // TODO: Send the message to the server or other clients
+            // server.sendMessageToOpponent(playerName, message);
+        }
     }
 
     private class ButtonListener implements ActionListener {
