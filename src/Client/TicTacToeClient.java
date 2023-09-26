@@ -50,17 +50,53 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(600, 400);
 
+        // Timer and Quit Button Panel
+        JPanel timerQuitPanel = new JPanel();
+        timerQuitPanel.setLayout(new BoxLayout(timerQuitPanel, BoxLayout.Y_AXIS));
+
+        JLabel timerText = new JLabel("Timer");
+        timerText.setAlignmentX(Component.CENTER_ALIGNMENT);
+        timerQuitPanel.add(timerText);
+
+        JLabel timerLabel = new JLabel("00:00");
+        timerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        timerQuitPanel.add(timerLabel);
+
+        // Spacer to push the quit button to the bottom
+        timerQuitPanel.add(Box.createVerticalGlue());
+
+        JButton quitButton = new JButton("Quit");
+        quitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        timerQuitPanel.add(quitButton);
+
+        quitButton.setPreferredSize(new Dimension(100, 30));
+        quitButton.setMaximumSize(new Dimension(100, 30));
+
+        timerQuitPanel.setPreferredSize(new Dimension(frame.getWidth() * 2 / 12, frame.getHeight()));
+
+        // Player's turn label above the board
+        JLabel playerTurnLabel = new JLabel("Player's Turn: [Name]");
+        playerTurnLabel.setHorizontalAlignment(JLabel.CENTER);
+
         // Tic Tac Toe Board
-        JPanel boardPanel = new JPanel(new GridLayout(3, 3, 5, 5));
-        boardPanel.setPreferredSize(new Dimension(400, 400));
+        JPanel boardPanel = new JPanel();
+        boardPanel.setLayout(new BorderLayout());
+        boardPanel.setPreferredSize(new Dimension(frame.getWidth() * 7 / 12, frame.getHeight()));
+
+        JPanel gridPanel = new JPanel(new GridLayout(3, 3, 5, 5));
+        gridPanel.setBackground(Color.BLACK);
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 buttons[i][j] = new JButton(" ");
                 buttons[i][j].setFont(new Font("Arial", Font.BOLD, 60));
+                buttons[i][j].setBackground(Color.WHITE);
                 buttons[i][j].addActionListener(new ButtonListener(i, j));
-                boardPanel.add(buttons[i][j]);
+                gridPanel.add(buttons[i][j]);
             }
         }
+
+        boardPanel.add(playerTurnLabel, BorderLayout.NORTH);
+        boardPanel.add(gridPanel, BorderLayout.CENTER);
 
         // Chat Area
         chatArea = new JTextArea();
@@ -70,29 +106,31 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         // Chat input field and send button
         chatInput = new JTextField(15);
         sendButton = new JButton("Send");
-        sendButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                sendMessage();
-            }
-        });
+        sendButton.addActionListener(e -> sendMessage());
 
-        JPanel chatBottomPanel = new JPanel();
-        chatBottomPanel.setLayout(new BorderLayout());
+        JPanel chatBottomPanel = new JPanel(new BorderLayout());
         chatBottomPanel.add(chatInput, BorderLayout.CENTER);
         chatBottomPanel.add(sendButton, BorderLayout.EAST);
 
         JPanel chatPanel = new JPanel(new BorderLayout());
-        chatPanel.setPreferredSize(new Dimension(200, 400));
+        chatPanel.setPreferredSize(new Dimension(frame.getWidth() * 3 / 12, frame.getHeight()));
+
+        JLabel chatTitle = new JLabel("Player Chat");
+        chatTitle.setHorizontalAlignment(JLabel.CENTER);
+        chatPanel.add(chatTitle, BorderLayout.NORTH);
+
         chatPanel.add(chatScrollPane, BorderLayout.CENTER);
         chatPanel.add(chatBottomPanel, BorderLayout.SOUTH);
 
-        frame.getContentPane().add(boardPanel, BorderLayout.WEST);
+        frame.getContentPane().add(timerQuitPanel, BorderLayout.WEST);
+        frame.getContentPane().add(boardPanel, BorderLayout.CENTER);
         frame.getContentPane().add(chatPanel, BorderLayout.EAST);
 
         frame.pack();
         frame.setVisible(true);
     }
+
+
 
     private void sendMessage() {
         String message = chatInput.getText().trim();
