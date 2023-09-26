@@ -157,6 +157,20 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         return 'I';  // If there's no such game, consider it an invalid move
     }
 
+    @Override
+    public synchronized void quitGame(String playerName) throws RemoteException {
+        GameSession gameSession = activeGames.get(playerName);
+        if (gameSession != null) {
+            String otherPlayer = gameSession.players.keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
+            gameSession.players.get(otherPlayer).client.displayMessage(playerName + " has quit the game! You are the winner!");
+
+            // Cleanup resources
+            activeGames.remove(playerName);
+            activeGames.remove(otherPlayer);
+        }
+    }
+
+
 
     public static void main(String[] args) {
         try {

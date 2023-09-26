@@ -9,4 +9,5 @@ public interface ServerInterface extends Remote {
     void registerPlayer(String playerName, ClientCallback client) throws RemoteException;
     Character makeMove(String playerName, int row, int col) throws RemoteException;
     void sendMessageToOpponent(String playerName, String message) throws RemoteException;
+    void quitGame(String playerName) throws RemoteException;
 }

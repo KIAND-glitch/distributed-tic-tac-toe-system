@@ -9,6 +9,12 @@ import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Random;
+import java.awt.Point;
+
+
 
 public class TicTacToeClient extends UnicastRemoteObject implements ClientCallback {
 
@@ -25,6 +31,11 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private JTextArea chatArea;
     private JTextField chatInput;
     private JButton sendButton;
+
+    private int timeLeft = 20; // default time
+    private Timer countdownTimer;
+    private JLabel timerLabel;
+
 
     public TicTacToeClient(String playerName) throws Exception {
         this.playerName = playerName;
@@ -58,7 +69,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         timerText.setAlignmentX(Component.CENTER_ALIGNMENT);
         timerQuitPanel.add(timerText);
 
-        JLabel timerLabel = new JLabel("00:00");
+        timerLabel = new JLabel("Timer: 20");
         timerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         timerQuitPanel.add(timerLabel);
 
@@ -71,6 +82,18 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
         quitButton.setPreferredSize(new Dimension(100, 30));
         quitButton.setMaximumSize(new Dimension(100, 30));
+
+        quitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    server.quitGame(playerName);  // notify server
+                } catch (RemoteException ex) {
+                    ex.printStackTrace();
+                }
+                System.exit(0); // close the application
+            }
+        });
 
         timerQuitPanel.setPreferredSize(new Dimension(frame.getWidth() * 2 / 12, frame.getHeight()));
 
@@ -128,7 +151,53 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
         frame.pack();
         frame.setVisible(true);
+
+
     }
+
+    private void setupCountdownTimer() {
+        countdownTimer = new Timer(1000, new ActionListener() { // 1000 milliseconds = 1 second
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                timeLeft--;
+                timerLabel.setText("Timer: " + timeLeft);
+                if (timeLeft <= 0) {
+                    makeRandomMove();
+                    countdownTimer.stop();
+                }
+            }
+        });
+    }
+
+
+    private void makeRandomMove() {
+        List<Point> emptyCells = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (buttons[i][j].getText().equals(" ")) {
+                    emptyCells.add(new Point(i, j));
+                }
+            }
+        }
+        if (!emptyCells.isEmpty()) {
+            Point randomMove = emptyCells.get(new Random().nextInt(emptyCells.size()));
+            try {
+                char result = server.makeMove(playerName, randomMove.x, randomMove.y);
+                handleGameResult(result);
+                myTurn = false; // It's no longer this client's turn
+                frame.setTitle("Waiting for Opponent");
+                // Disable board buttons
+                for(int i = 0; i < 3; i++) {
+                    for(int j = 0; j < 3; j++) {
+                        buttons[i][j].setEnabled(false);
+                    }
+                }
+            } catch (RemoteException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
 
 
 
@@ -160,13 +229,14 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         public void actionPerformed(ActionEvent e) {
             if (myTurn && buttons[row][col].getText().equals(" ")) {
                 try {
+                    countdownTimer.stop();
                     char result = server.makeMove(playerName, row, col);
                     handleGameResult(result);
                     myTurn = false; // It's no longer this client's turn
                     frame.setTitle("Waiting for Opponent");
                     // Disable board buttons
-                    for(int i = 0; i < 3; i++) {
-                        for(int j = 0; j < 3; j++) {
+                    for (int i = 0; i < 3; i++) {
+                        for (int j = 0; j < 3; j++) {
                             buttons[i][j].setEnabled(false);
                         }
                     }
@@ -175,8 +245,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 }
             }
         }
-
     }
+
 
     private void handleGameResult(char result) throws RemoteException {
         switch (result) {
@@ -203,12 +273,18 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
         myTurn = true;
         frame.setTitle("Your Turn");
+        setupCountdownTimer();
 
         for(int i = 0; i < 3; i++) {
             for(int j = 0; j < 3; j++) {
                 buttons[i][j].setEnabled(true);
             }
         }
+
+        // Start the countdown timer
+        timeLeft = 20;
+        timerLabel.setText("Timer: " + timeLeft);
+        countdownTimer.start();
     }
 
     @Override
