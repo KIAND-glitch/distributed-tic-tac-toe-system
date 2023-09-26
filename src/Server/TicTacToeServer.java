@@ -107,6 +107,12 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             }
             return 'D'; // Game is a draw
         }
+
+        public void sendMessage(String sender, String message) throws RemoteException {
+            String receiver = players.keySet().stream().filter(p -> !p.equals(sender)).findFirst().get();
+            players.get(receiver).client.displayMessage(sender + ": " + message);
+        }
+
     }
 
     private HashMap<String, PlayerInfo> players = new HashMap<>();
@@ -133,6 +139,14 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             players.put(playerName, newPlayer);
         }
     }
+
+    @Override
+    public void sendMessageToOpponent(String playerName, String message) throws RemoteException {
+        if (activeGames.containsKey(playerName)) {
+            activeGames.get(playerName).sendMessage(playerName, message);
+        }
+    }
+
 
     @Override
     public synchronized Character makeMove(String playerName, int row, int col) throws RemoteException {

@@ -100,8 +100,12 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             chatArea.append("You: " + message + "\n");
             chatInput.setText("");
 
-            // TODO: Send the message to the server or other clients
-            // server.sendMessageToOpponent(playerName, message);
+            try {
+                server.sendMessageToOpponent(playerName, message);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+                chatArea.append("Failed to send message.\n");
+            }
         }
     }
 
