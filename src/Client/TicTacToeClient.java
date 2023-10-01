@@ -36,6 +36,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private Timer countdownTimer;
     private JLabel timerLabel;
 
+    private JLabel gameInfo;
+
 
     public TicTacToeClient(String playerName) throws Exception {
         this.playerName = playerName;
@@ -98,8 +100,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         timerQuitPanel.setPreferredSize(new Dimension(frame.getWidth() * 2 / 12, frame.getHeight()));
 
         // Player's turn label above the board
-        JLabel playerTurnLabel = new JLabel("Player's Turn: [Name]");
-        playerTurnLabel.setHorizontalAlignment(JLabel.CENTER);
+        gameInfo = new JLabel("Finding Player");
+        gameInfo.setHorizontalAlignment(JLabel.CENTER);
 
         // Tic Tac Toe Board
         JPanel boardPanel = new JPanel();
@@ -118,7 +120,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
         }
 
-        boardPanel.add(playerTurnLabel, BorderLayout.NORTH);
+        boardPanel.add(gameInfo, BorderLayout.NORTH);
         boardPanel.add(gridPanel, BorderLayout.CENTER);
 
         // Chat Area
@@ -156,7 +158,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     }
 
     private void setupCountdownTimer() {
-        countdownTimer = new Timer(1000, new ActionListener() { // 1000 milliseconds = 1 second
+        countdownTimer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 timeLeft--;
@@ -185,7 +187,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 char result = server.makeMove(playerName, randomMove.x, randomMove.y);
                 handleGameResult(result);
                 myTurn = false; // It's no longer this client's turn
-                frame.setTitle("Waiting for Opponent");
+                // frame.setTitle("Waiting for Opponent");
                 // Disable board buttons
                 for(int i = 0; i < 3; i++) {
                     for(int j = 0; j < 3; j++) {
@@ -233,7 +235,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     char result = server.makeMove(playerName, row, col);
                     handleGameResult(result);
                     myTurn = false; // It's no longer this client's turn
-                    frame.setTitle("Waiting for Opponent");
+                    // frame.setTitle("Waiting for Opponent");
+                    gameInfo.setText("Opponents turn");
                     // Disable board buttons
                     for (int i = 0; i < 3; i++) {
                         for (int j = 0; j < 3; j++) {
@@ -271,6 +274,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             return;
         }
 
+        gameInfo.setText("Your Turn");
         myTurn = true;
         frame.setTitle("Your Turn");
         setupCountdownTimer();
@@ -316,6 +320,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     public void assignCharacter(Character character, String startMessage) throws RemoteException {
         System.out.println("You are assigned: " + character);
         System.out.println(startMessage);
+        gameInfo.setText("Opponents turn");
         this.playerSymbol = character;
     }
 
