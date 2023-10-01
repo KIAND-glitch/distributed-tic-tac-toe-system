@@ -38,6 +38,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     private JLabel gameInfo;
 
+    private JLabel playerRankLabel;
+
 
     public TicTacToeClient(String playerName) throws Exception {
         this.playerName = playerName;
@@ -103,6 +105,9 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         gameInfo = new JLabel("Finding Player");
         gameInfo.setHorizontalAlignment(JLabel.CENTER);
 
+        playerRankLabel = new JLabel("Rank: - ");
+        playerRankLabel.setHorizontalAlignment(JLabel.CENTER);
+
         // Tic Tac Toe Board
         JPanel boardPanel = new JPanel();
         boardPanel.setLayout(new BorderLayout());
@@ -120,6 +125,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
         }
 
+        boardPanel.add(playerRankLabel, BorderLayout.SOUTH);
         boardPanel.add(gameInfo, BorderLayout.NORTH);
         boardPanel.add(gridPanel, BorderLayout.CENTER);
 
@@ -303,6 +309,12 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         }
     }
 
+    public void updatePlayerRank(int rank) throws RemoteException {
+        SwingUtilities.invokeLater(() -> {
+            playerRankLabel.setText("Rank: " + rank);
+        });
+    }
+
 
     @Override
     public void displayMessage(String message) throws RemoteException {
@@ -317,11 +329,12 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     }
 
     @Override
-    public void assignCharacter(Character character, String startMessage) throws RemoteException {
+    public void assignCharacter(Character character, String startMessage, int rank) throws RemoteException {
         System.out.println("You are assigned: " + character);
         System.out.println(startMessage);
         gameInfo.setText("Opponents turn");
         this.playerSymbol = character;
+        updatePlayerRank(rank);
     }
 
 

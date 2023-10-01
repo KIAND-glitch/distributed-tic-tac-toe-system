@@ -5,16 +5,15 @@ import Client.ClientCallback;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 public class TicTacToeServer extends UnicastRemoteObject implements ServerInterface {
 
     private HashMap<String, PlayerInfo> players = new HashMap<>();
     private Queue<String> waitingPlayers = new LinkedList<>();
     private HashMap<String, GameSession> activeGames = new HashMap<>();
+
+    private HashMap<String, PlayerRanking> playerRankings = new HashMap<>();
 
     public TicTacToeServer() throws RemoteException {
         super();
@@ -24,10 +23,14 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     public synchronized void registerPlayer(String playerName, ClientCallback client) throws RemoteException {
         PlayerInfo newPlayer = new PlayerInfo(client, '-');
 
+        if (!playerRankings.containsKey(playerName)) {
+            playerRankings.put(playerName, new PlayerRanking(playerName));
+        }
+
         // If there's a player waiting, pair them up and start a game.
         if (!waitingPlayers.isEmpty()) {
             String opponentName = waitingPlayers.poll();
-            GameSession newGame = new GameSession(playerName, newPlayer, opponentName, players.remove(opponentName));
+            GameSession newGame = new GameSession(playerName, newPlayer, opponentName, players.remove(opponentName), this);
             activeGames.put(playerName, newGame);
             activeGames.put(opponentName, newGame);
             newGame.assignCharactersAndStart();
@@ -65,6 +68,29 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             activeGames.remove(otherPlayer);
         }
     }
+
+    public void updatePointsAfterGame(String playerName, int points) {
+        if (playerRankings.containsKey(playerName)) {
+            if (points > 0) {
+                playerRankings.get(playerName).addPoints(points);
+            } else {
+                playerRankings.get(playerName).subtractPoints(points);
+            }
+        }
+    }
+
+    public int getPlayerRank(String playerName) {
+        List<PlayerRanking> sortedPlayers = new ArrayList<>(playerRankings.values());
+        sortedPlayers.sort((player1, player2) -> Integer.compare(player2.getPoints(), player1.getPoints()));
+
+        for (int i = 0; i < sortedPlayers.size(); i++) {
+            if (sortedPlayers.get(i).getPoints() == playerRankings.get(playerName).getPoints()) {
+                return i + 1;  // ranks start from 1
+            }
+        }
+        return -1;  // if player not found (this shouldn't happen)
+    }
+
 
     public static void main(String[] args) {
         try {

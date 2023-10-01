@@ -12,13 +12,17 @@ public class GameSession {
 
     private String[] playerChat;
 
+    private TicTacToeServer server;
+
+
     public HashMap<String, PlayerInfo> getPlayers() {
         return players;
     }
 
-    public GameSession(String player1, PlayerInfo info1, String player2, PlayerInfo info2) {
+    public GameSession(String player1, PlayerInfo info1, String player2, PlayerInfo info2, TicTacToeServer server) {
         players.put(player1, info1);
         players.put(player2, info2);
+        this.server = server;
 
         // Initialize the board with spaces
         for (int i = 0; i < 3; i++) {
@@ -35,9 +39,9 @@ public class GameSession {
         String otherPlayer = players.keySet().stream().filter(p -> !p.equals(currentPlayer)).findFirst().get();
         players.get(otherPlayer).symbol = 'O';
 
-        players.get(currentPlayer).client.assignCharacter('X', "Game started. You play first!");
+        players.get(currentPlayer).client.assignCharacter('X', "Game started. You play first!", server.getPlayerRank(currentPlayer));
         players.get(currentPlayer).client.notifyTurn();
-        players.get(otherPlayer).client.assignCharacter('O', "Game started. Waiting for opponent's move.");
+        players.get(otherPlayer).client.assignCharacter('O', "Game started. Waiting for opponent's move.", server.getPlayerRank(otherPlayer));
     }
 
     public char makeMove(String playerName, int row, int col) throws RemoteException {
@@ -68,9 +72,19 @@ public class GameSession {
             if (result == 'D') {
                 players.get(playerName).client.displayMessage("Game Over! It's a draw!");
                 players.get(otherPlayer).client.displayMessage("Game Over! It's a draw!");
-            } else {
-                players.get(playerName).client.displayMessage(result == players.get(playerName).symbol ? youWon : opponentWon);
-                players.get(otherPlayer).client.displayMessage(result == players.get(otherPlayer).symbol ? youWon : opponentWon);
+                server.updatePointsAfterGame(playerName, 2);
+                server.updatePointsAfterGame(otherPlayer, 2);
+
+            } else if (result == players.get(playerName).symbol) { // Current player wins
+                players.get(playerName).client.displayMessage(youWon);
+                players.get(otherPlayer).client.displayMessage(opponentWon);
+                server.updatePointsAfterGame(playerName, 5);
+                server.updatePointsAfterGame(otherPlayer, -5);
+            } else { // Opponent wins
+                players.get(playerName).client.displayMessage(opponentWon);
+                players.get(otherPlayer).client.displayMessage(youWon);
+                server.updatePointsAfterGame(playerName, -5);
+                server.updatePointsAfterGame(otherPlayer, 5);
             }
             askForRematch();
         }
