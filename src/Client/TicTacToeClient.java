@@ -335,6 +335,25 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         }
     }
 
+    @Override
+    public void askToPlayAgain() throws RemoteException {
+        SwingUtilities.invokeLater(() -> {
+            int response = JOptionPane.showConfirmDialog(null,
+                    "Game Over! Would you like to play again?",
+                    "Tic Tac Toe",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+
+            if(response == JOptionPane.YES_OPTION){
+                try {
+                    server.registerPlayer(playerName, this);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
     public static void main(String[] args) {
         if (args.length < 1) {
             System.out.println("Usage: java TicTacToeClient <username>");
