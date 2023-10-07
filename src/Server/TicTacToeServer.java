@@ -15,9 +15,42 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
     private HashMap<String, PlayerRanking> playerRankings = new HashMap<>();
 
+    private HashMap<String, Long> lastHeartbeat = new HashMap<>();
+
+
     public TicTacToeServer() throws RemoteException {
         super();
+        new Thread(() -> {
+            while (true) {
+                long now = System.currentTimeMillis();
+                for (Map.Entry<String, Long> entry : lastHeartbeat.entrySet()) {
+                    if (now - entry.getValue() > 5000) {
+                        handleClientDisconnection(entry.getKey());
+                    }
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
     }
+
+    @Override
+    public synchronized void sendHeartbeat(String playerName) throws RemoteException {
+        System.out.println("Received heartbeat from: " + playerName);
+        lastHeartbeat.put(playerName, System.currentTimeMillis());
+    }
+
+    private synchronized void handleClientDisconnection(String playerName) {
+        System.out.println("Client " + playerName + " is disconnected.");
+        lastHeartbeat.remove(playerName);
+        // Handle the disconnection, e.g., end the game, notify the opponent, etc.
+    }
+
+
 
     @Override
     public synchronized void registerPlayer(String playerName, ClientCallback client) throws RemoteException {
@@ -90,7 +123,6 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         }
         return -1;  // if player not found (this shouldn't happen)
     }
-
 
     public static void main(String[] args) {
         try {

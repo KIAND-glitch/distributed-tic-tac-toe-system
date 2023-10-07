@@ -13,8 +13,9 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
 import java.awt.Point;
-
-
+import java.util.Timer;
+import java.util.TimerTask;
+//import javax.swing.Timer;
 
 public class TicTacToeClient extends UnicastRemoteObject implements ClientCallback {
 
@@ -56,9 +57,27 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             createAndShowGUI();
             isExported = true;
             server.registerPlayer(playerName, clientStub);
+            startHeartbeat();
             playGame(playerName);
         }
     }
+
+
+    private void startHeartbeat() {
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    server.sendHeartbeat(playerName);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                    // Handle potential server disconnection or other issues here.
+                    // For instance, you can notify the user, try to reconnect, or shut down the client.
+                }
+            }
+        }, 0, 2000);
+    }
+
 
     private void createAndShowGUI() {
         frame = new JFrame("Tic Tac Toe ");
@@ -163,19 +182,19 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     }
 
-    private void setupCountdownTimer() {
-        countdownTimer = new Timer(1000, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                timeLeft--;
-                timerLabel.setText("Timer: " + timeLeft);
-                if (timeLeft <= 0) {
-                    makeRandomMove();
-                    countdownTimer.stop();
-                }
-            }
-        });
-    }
+//    private void setupCountdownTimer() {
+//        countdownTimer = new Timer(1000, new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//                timeLeft--;
+//                timerLabel.setText("Timer: " + timeLeft);
+//                if (timeLeft <= 0) {
+//                    makeRandomMove();
+////                    countdownTimer.stop();
+//                }
+//            }
+//        });
+//    }
 
 
     private void makeRandomMove() {
@@ -237,7 +256,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         public void actionPerformed(ActionEvent e) {
             if (myTurn && buttons[row][col].getText().equals(" ")) {
                 try {
-                    countdownTimer.stop();
+//                    countdownTimer.stop();
                     char result = server.makeMove(playerName, row, col);
                     handleGameResult(result);
                     myTurn = false; // It's no longer this client's turn
@@ -283,7 +302,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         gameInfo.setText("Your Turn");
         myTurn = true;
         frame.setTitle("Your Turn");
-        setupCountdownTimer();
+//        setupCountdownTimer();
 
         for(int i = 0; i < 3; i++) {
             for(int j = 0; j < 3; j++) {
@@ -294,7 +313,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         // Start the countdown timer
         timeLeft = 20;
         timerLabel.setText("Timer: " + timeLeft);
-        countdownTimer.start();
+//        countdownTimer.start();
     }
 
     @Override

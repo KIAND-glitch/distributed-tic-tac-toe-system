@@ -10,4 +10,6 @@ public interface ServerInterface extends Remote {
     Character makeMove(String playerName, int row, int col) throws RemoteException;
     void sendMessageToOpponent(String playerName, String message) throws RemoteException;
     void quitGame(String playerName) throws RemoteException;
+    void sendHeartbeat(String playerName) throws RemoteException;
+
 }
