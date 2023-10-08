@@ -122,5 +122,13 @@ public class GameSession {
         }
     }
 
+    public String getOtherPlayer(String playerName) {
+        for (String name : players.keySet()) {
+            if (!name.equals(playerName)) {
+                return name;
+            }
+        }
+        return null;
+    }
 
 }

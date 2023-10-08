@@ -41,6 +41,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     private JLabel playerRankLabel;
 
+    private Timer pauseTimer;
+
 
     public TicTacToeClient(String playerName) throws Exception {
         this.playerName = playerName;
@@ -71,12 +73,15 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     server.sendHeartbeat(playerName);
                 } catch (RemoteException e) {
                     e.printStackTrace();
-                    // Handle potential server disconnection or other issues here.
-                    // For instance, you can notify the user, try to reconnect, or shut down the client.
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(frame, "Server unavailable", "Error", JOptionPane.ERROR_MESSAGE);
+                        System.exit(0); // close the application after 5 seconds
+                    });
                 }
             }
         }, 0, 2000);
     }
+
 
 
     private void createAndShowGUI() {
@@ -381,6 +386,52 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     server.registerPlayer(playerName, this);
                 } catch (RemoteException e) {
                     e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public void handlePause() {
+        SwingUtilities.invokeLater(() -> {
+            gameInfo.setText("Game paused, Timer: 30");
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    buttons[i][j].setEnabled(false);
+                }
+            }
+
+            if (pauseTimer != null) {
+                pauseTimer.cancel();
+            }
+            pauseTimer = new Timer();
+            pauseTimer.scheduleAtFixedRate(new TimerTask() {
+                int countdown = 30;
+
+                @Override
+                public void run() {
+                    countdown--;
+                    gameInfo.setText("Game paused, Timer: " + countdown);
+                    if (countdown <= 0) {
+                        chatArea.append("Game ended in a draw due to player disconnection\n");
+                        gameInfo.setText("Game ended in a draw");
+                        pauseTimer.cancel();
+                    }
+                }
+            }, 0, 1000);
+        });
+    }
+
+    public void resumeGame() throws RemoteException {
+        SwingUtilities.invokeLater(() -> {
+            if (pauseTimer != null) {
+                pauseTimer.cancel();
+            }
+            gameInfo.setText("Game resumed");
+            if(myTurn) {
+                for(int i = 0; i < 3; i++) {
+                    for(int j = 0; j < 3; j++) {
+                        buttons[i][j].setEnabled(true);
+                    }
                 }
             }
         });

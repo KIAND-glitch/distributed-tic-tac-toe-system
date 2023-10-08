@@ -11,5 +11,6 @@ public interface ClientCallback extends Remote {
     void notifyTurn() throws RemoteException;
     void displayBoard(char[][] board) throws RemoteException;
     void askToPlayAgain() throws RemoteException;
-
+    void resumeGame() throws RemoteException;
+    void handlePause() throws RemoteException;
 }

@@ -46,6 +46,17 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
     private synchronized void handleClientDisconnection(String playerName) {
         System.out.println("Client " + playerName + " is disconnected.");
+
+        // Check if the player was in an active game
+        GameSession gameSession = activeGames.get(playerName);
+        if (gameSession != null) {
+            String otherPlayer = gameSession.getOtherPlayer(playerName);
+            try {
+                gameSession.getPlayers().get(otherPlayer).client.handlePause();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
         lastHeartbeat.remove(playerName);
         // Handle the disconnection, e.g., end the game, notify the opponent, etc.
     }
@@ -55,6 +66,17 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     @Override
     public synchronized void registerPlayer(String playerName, ClientCallback client) throws RemoteException {
         PlayerInfo newPlayer = new PlayerInfo(client, '-');
+
+        // Check if the player was in an active game before disconnection
+        GameSession previousGame = activeGames.get(playerName);
+        if (previousGame != null) {
+            String otherPlayer = previousGame.getPlayers().keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
+            try {
+                previousGame.getPlayers().get(otherPlayer).client.resumeGame();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
 
         if (!playerRankings.containsKey(playerName)) {
             playerRankings.put(playerName, new PlayerRanking(playerName));
