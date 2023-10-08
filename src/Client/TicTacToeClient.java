@@ -187,19 +187,32 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     }
 
-//    private void setupCountdownTimer() {
-//        countdownTimer = new Timer(1000, new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                timeLeft--;
-//                timerLabel.setText("Timer: " + timeLeft);
-//                if (timeLeft <= 0) {
-//                    makeRandomMove();
-////                    countdownTimer.stop();
-//                }
-//            }
-//        });
-//    }
+    private void setupCountdownTimer() {
+        stopCountdownTimer();
+        countdownTimer = new Timer();
+
+        timeLeft = 20;
+        timerLabel.setText("Timer: " + timeLeft);
+        countdownTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                timeLeft--;
+                timerLabel.setText("Timer: " + timeLeft);
+
+                if (timeLeft <= 0) {
+                    makeRandomMove();
+                    countdownTimer.cancel();
+                }
+            }
+        }, 0, 1000);
+    }
+
+    private void stopCountdownTimer() {
+        if (countdownTimer != null) {
+            countdownTimer.cancel();
+            countdownTimer = null;
+        }
+    }
 
 
     private void makeRandomMove() {
@@ -261,7 +274,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         public void actionPerformed(ActionEvent e) {
             if (myTurn && buttons[row][col].getText().equals(" ")) {
                 try {
-//                    countdownTimer.stop();
+                    stopCountdownTimer();
                     char result = server.makeMove(playerName, row, col);
                     handleGameResult(result);
                     myTurn = false; // It's no longer this client's turn
@@ -307,7 +320,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         gameInfo.setText("Your Turn");
         myTurn = true;
         frame.setTitle("Your Turn");
-//        setupCountdownTimer();
 
         for(int i = 0; i < 3; i++) {
             for(int j = 0; j < 3; j++) {
@@ -315,10 +327,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
         }
 
-        // Start the countdown timer
-        timeLeft = 20;
-        timerLabel.setText("Timer: " + timeLeft);
-//        countdownTimer.start();
+        setupCountdownTimer();
     }
 
     @Override
