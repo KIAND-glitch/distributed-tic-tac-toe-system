@@ -21,10 +21,10 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private String playerName;
     private Character playerChar;
     private int playerRank;
-
     private String opponentName;
     private Character opponentChar;
     private int opponentRank;
+    private List<String> chatMessages = new ArrayList<>();
     private boolean isExported = false;
     private boolean myTurn = false;
     private JFrame frame;
@@ -124,7 +124,9 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         // Tic Tac Toe Board
         JPanel boardPanel = new JPanel();
         boardPanel.setLayout(new BorderLayout());
-        boardPanel.setPreferredSize(new Dimension(frame.getWidth() * 7 / 12, frame.getHeight()));
+        // boardPanel.setPreferredSize(new Dimension(frame.getWidth() * 7 / 12, frame.getHeight()));
+        boardPanel.setPreferredSize(new Dimension(400, 400));
+
 
         JPanel gridPanel = new JPanel(new GridLayout(3, 3, 5, 5));
         gridPanel.setBackground(Color.BLACK);
@@ -177,7 +179,9 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         chatBottomPanel.add(sendButton, BorderLayout.EAST);
 
         JPanel chatPanel = new JPanel(new BorderLayout());
-        chatPanel.setPreferredSize(new Dimension(frame.getWidth() * 3 / 12, frame.getHeight()));
+        // chatPanel.setPreferredSize(new Dimension(frame.getWidth() * 3 / 12, frame.getHeight()));
+        chatPanel.setPreferredSize(new Dimension(250, frame.getHeight()));
+
 
         JLabel chatTitle = new JLabel("Player Chat");
         chatTitle.setHorizontalAlignment(JLabel.CENTER);
@@ -246,7 +250,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private void sendMessage() {
         String message = chatInput.getText().trim();
         if (!message.isEmpty()) {
-            chatArea.append("You: " + message + "\n");
+            chatArea.append(playerName + ": " + message + "\n");
             chatInput.setText("");
             try {
                 server.sendMessageToOpponent(playerName, message);
@@ -256,6 +260,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
         }
     }
+
+
 
     private void handleGameResult(char result) throws RemoteException {
         switch (result) {
