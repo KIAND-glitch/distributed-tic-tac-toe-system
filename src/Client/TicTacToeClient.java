@@ -19,6 +19,12 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     private ServerInterface server;
     private String playerName;
+    private Character playerChar;
+    private int playerRank;
+
+    private String opponentName;
+    private Character opponentChar;
+    private int opponentRank;
     private boolean isExported = false;
     private boolean myTurn = false;
     private JFrame frame;
@@ -71,7 +77,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     }
 
     private void createAndShowGUI() {
-        frame = new JFrame("Tic Tac Toe ");
+        frame = new JFrame("Tic Tac Toe: " + playerName);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(600, 400);
 
@@ -139,7 +145,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                             char result = server.makeMove(playerName, finalI, finalJ);
                             handleGameResult(result);
                             myTurn = false;
-                            gameInfo.setText("Opponents turn");
+                            gameInfo.setText(opponentName + "'s turn (" + opponentChar + ")");
 
                         } catch (RemoteException remoteException) {
                             remoteException.printStackTrace();
@@ -273,7 +279,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             System.out.println("Frame has not been initialized!");
             return;
         }
-        gameInfo.setText("Your Turn");
+
+        gameInfo.setText(playerName + "'s turn (" + playerChar + ")");
         myTurn = true;
 
         setupCountdownTimer();
@@ -300,11 +307,15 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     }
 
     @Override
-    public void assignCharacter(Character character, String startMessage, int rank) throws RemoteException {
-        System.out.println("You are assigned: " + character);
-        System.out.println(startMessage);
-        gameInfo.setText("Opponents turn");
-        updatePlayerRank(rank);
+    public void assignCharacter(Character character, String opponentName, int rank, int opponentRank) throws RemoteException {
+        this.playerChar = character;
+        this.opponentName = opponentName;
+        this.opponentChar = character == 'X'? '0':'X';
+        this.playerRank = rank;
+        this.opponentRank = opponentRank;
+
+        gameInfo.setText(opponentName + "'s turn (" + opponentChar + ")");
+//        updatePlayerRank(rank);
     }
 
     private void playGame() throws RemoteException {

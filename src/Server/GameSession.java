@@ -39,9 +39,11 @@ public class GameSession {
         String otherPlayer = players.keySet().stream().filter(p -> !p.equals(currentPlayer)).findFirst().get();
         players.get(otherPlayer).symbol = 'O';
 
-        players.get(currentPlayer).client.assignCharacter('X', "Game started. You play first!", server.getPlayerRank(currentPlayer));
+        players.get(otherPlayer).client.assignCharacter('O', currentPlayer, server.getPlayerRank(otherPlayer), server.getPlayerRank(currentPlayer));
+
+        players.get(currentPlayer).client.assignCharacter('X', otherPlayer, server.getPlayerRank(currentPlayer), server.getPlayerRank(otherPlayer));
         players.get(currentPlayer).client.notifyTurn();
-        players.get(otherPlayer).client.assignCharacter('O', "Game started. Waiting for opponent's move.", server.getPlayerRank(otherPlayer));
+
     }
 
     public char makeMove(String playerName, int row, int col) throws RemoteException {
