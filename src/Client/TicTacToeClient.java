@@ -4,7 +4,6 @@ import Server.ServerInterface;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
@@ -141,7 +140,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                             handleGameResult(result);
                             myTurn = false;
                             gameInfo.setText("Opponents turn");
-                            setButtonsEnabled(false);
+
                         } catch (RemoteException remoteException) {
                             remoteException.printStackTrace();
                         }
@@ -231,7 +230,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 char result = server.makeMove(playerName, randomMove.x, randomMove.y);
                 handleGameResult(result);
                 myTurn = false;
-                setButtonsEnabled(false);
+
             } catch (RemoteException ex) {
                 ex.printStackTrace();
             }
@@ -276,18 +275,15 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         }
         gameInfo.setText("Your Turn");
         myTurn = true;
-        setButtonsEnabled(true);
+
         setupCountdownTimer();
     }
 
     @Override
-    public void displayBoard(char[][] board ) throws RemoteException {
+    public void displayBoard(char[][] board) throws RemoteException {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 buttons[i][j].setText(String.valueOf(board[i][j]));
-                if(board[i][j] != ' ') {
-                    buttons[i][j].setEnabled(false);
-                }
             }
         }
     }
@@ -343,7 +339,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     public void handlePause() {
         SwingUtilities.invokeLater(() -> {
             gameInfo.setText("Game paused, Timer: 30");
-            setButtonsEnabled(false);
+
 
             if (pauseTimer != null) {
                 pauseTimer.cancel();
@@ -372,18 +368,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 pauseTimer.cancel();
             }
             gameInfo.setText("Game resumed");
-            if(myTurn) {
-                setButtonsEnabled(true);
-            }
         });
-    }
-
-    private void setButtonsEnabled(boolean isEnabled) {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                buttons[i][j].setEnabled(isEnabled);
-            }
-        }
     }
 
     public static void main(String[] args) {
