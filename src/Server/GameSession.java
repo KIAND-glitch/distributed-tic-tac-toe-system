@@ -15,80 +15,85 @@ public class GameSession {
         players.put(player1, info1);
         players.put(player2, info2);
         this.server = server;
+        initBoard();
+        currentPlayer = random.nextBoolean() ? player1 : player2;
+    }
+
+    private void initBoard() {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 board[i][j] = ' ';
             }
         }
-        currentPlayer = random.nextBoolean() ? player1 : player2;
     }
 
     public void assignCharactersAndStart() throws RemoteException {
         players.get(currentPlayer).symbol = 'X';
-        String otherPlayer = players.keySet().stream().filter(p -> !p.equals(currentPlayer)).findFirst().get();
+        String otherPlayer = getOtherPlayer(currentPlayer);
         players.get(otherPlayer).symbol = 'O';
 
-        players.get(otherPlayer).client.assignCharacter('O', currentPlayer, server.getPlayerRank(otherPlayer), server.getPlayerRank(currentPlayer));
+        notifyPlayers('O', 'X', currentPlayer, otherPlayer);
+    }
 
-        players.get(currentPlayer).client.assignCharacter('X', otherPlayer, server.getPlayerRank(currentPlayer), server.getPlayerRank(otherPlayer));
+    private void notifyPlayers(char currentChar, char otherChar, String currentPlayer, String otherPlayer) throws RemoteException {
+        players.get(otherPlayer).client.assignCharacter(currentChar, currentPlayer, server.getPlayerRank(otherPlayer), server.getPlayerRank(currentPlayer));
+        players.get(currentPlayer).client.assignCharacter(otherChar, otherPlayer, server.getPlayerRank(currentPlayer), server.getPlayerRank(otherPlayer));
         players.get(currentPlayer).client.notifyTurn();
-
     }
 
     public char makeMove(String playerName, int row, int col) throws RemoteException {
-        if (row < 0 || row >= 3 || col < 0 || col >= 3 || board[row][col] != ' ') {
-            return 'I';  // Invalid move
-        }
+        updateBoard(playerName, row, col);
 
-        System.out.println("made move" + playerName + row + col);
-
-        board[row][col] = players.get(playerName).symbol;
-        players.get(playerName).client.displayBoard(board);
-
-        // Notify the other player about the board update
-        String otherPlayer = players.keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
-        players.get(otherPlayer).client.displayBoard(board);
-
-        // Check for game end conditions
         char result = evaluateGame();
-
-        if (result == 'N') {
-            // If the game isn't over, switch turns
-            currentPlayer = otherPlayer;
-            players.get(currentPlayer).client.notifyTurn();
-        } else {
-            // If the game is over
-            if (result == 'D') {
-                players.get(playerName).client.updateGameInfo("Match Drawn");
-                players.get(otherPlayer).client.updateGameInfo("Match Drawn");
-                server.updatePointsAfterGame(playerName, 2);
-                server.updatePointsAfterGame(otherPlayer, 2);
-
-            } else if (result == players.get(playerName).symbol) { // Current player wins
-                System.out.println("player" + playerName );
-                System.out.println("other player" + otherPlayer );
-                players.get(playerName).client.updateGameInfo("Player "+ playerName +" wins!");
-                players.get(otherPlayer).client.updateGameInfo("Player "+ playerName +" wins!");
-                server.updatePointsAfterGame(playerName, 5);
-                server.updatePointsAfterGame(otherPlayer, -5);
-            } else { // Opponent wins
-                System.out.println("player" + playerName );
-                System.out.println("other player" + otherPlayer );
-                players.get(playerName).client.updateGameInfo("Player " + otherPlayer + " wins!");
-                players.get(otherPlayer).client.updateGameInfo("Player " + otherPlayer + " wins!");
-                server.updatePointsAfterGame(playerName, -5);
-                server.updatePointsAfterGame(otherPlayer, 5);
-            }
-            askForRematch();
-        }
+        handleGameEnd(result, playerName);
 
         return result;
     }
 
+    private void updateBoard(String playerName, int row, int col) throws RemoteException {
+        board[row][col] = players.get(playerName).symbol;
+        players.get(playerName).client.displayBoard(board);
+
+        String otherPlayer = getOtherPlayer(playerName);
+        players.get(otherPlayer).client.displayBoard(board);
+    }
+
+    private void handleGameEnd(char result, String playerName) throws RemoteException {
+        String otherPlayer = getOtherPlayer(playerName);
+
+        if (result == 'N') {
+            currentPlayer = otherPlayer;
+            players.get(currentPlayer).client.notifyTurn();
+        } else {
+            if (result == 'D') {
+                informPlayers("Match Drawn", playerName, otherPlayer);
+                server.updatePointsAfterGame(playerName, 2);
+                server.updatePointsAfterGame(otherPlayer, 2);
+            } else {
+                handlePlayerWin(result, playerName, otherPlayer);
+            }
+            askForRematch();
+        }
+    }
+
+    private void handlePlayerWin(char result, String playerName, String otherPlayer) throws RemoteException {
+        if (result == players.get(playerName).symbol) {
+            informPlayers("Player " + playerName + " wins!", playerName, otherPlayer);
+            server.updatePointsAfterGame(playerName, 5);
+            server.updatePointsAfterGame(otherPlayer, -5);
+        } else {
+            informPlayers("Player " + otherPlayer + " wins!", playerName, otherPlayer);
+            server.updatePointsAfterGame(playerName, -5);
+            server.updatePointsAfterGame(otherPlayer, 5);
+        }
+    }
+
+    private void informPlayers(String message, String playerName, String otherPlayer) throws RemoteException {
+        players.get(playerName).client.updateGameInfo(message);
+        players.get(otherPlayer).client.updateGameInfo(message);
+    }
 
     public char evaluateGame() {
-        // Simplified win checking, doesn't account for draws or determine if the game can continue
-        // Loop through rows, columns, and diagonals to check for three of the same symbol
         for (int i = 0; i < 3; i++) {
             if (board[i][0] == board[i][1] && board[i][1] == board[i][2] && board[i][0] != ' ') return board[i][0];
             if (board[0][i] == board[1][i] && board[1][i] == board[2][i] && board[0][i] != ' ') return board[0][i];
@@ -98,14 +103,14 @@ public class GameSession {
 
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                if (board[i][j] == ' ') return 'N'; // Game is not over yet
+                if (board[i][j] == ' ') return 'N';
             }
         }
-        return 'D'; // Game is a draw
+        return 'D';
     }
 
     public void sendMessage(String sender, String message) throws RemoteException {
-        String receiver = players.keySet().stream().filter(p -> !p.equals(sender)).findFirst().get();
+        String receiver = getOtherPlayer(sender);
         players.get(receiver).client.displayMessage(sender + ": " + message);
     }
 
