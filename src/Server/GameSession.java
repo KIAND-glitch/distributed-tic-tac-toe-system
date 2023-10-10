@@ -109,9 +109,9 @@ public class GameSession {
         return 'D';
     }
 
-    public void sendMessage(String sender, String message) throws RemoteException {
+    public void sendMessage(int playerRank, String sender, String message) throws RemoteException {
         String receiver = getOtherPlayer(sender);
-        players.get(receiver).client.displayMessage(sender + ": " + message);
+        players.get(receiver).client.displayMessage("Rank#" + playerRank + sender + ": " + message);
     }
 
     public void askForRematch() throws RemoteException {

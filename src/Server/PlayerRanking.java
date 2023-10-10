@@ -1,11 +1,9 @@
 package Server;
 
 public class PlayerRanking {
-    private String playerName;
     private int points;
 
-    public PlayerRanking(String playerName) {
-        this.playerName = playerName;
+    public PlayerRanking() {
         this.points = 0;
     }
 

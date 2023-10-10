@@ -20,7 +20,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private ServerInterface server;
     private String playerName;
     private Character playerChar;
-    private int playerRank;
+    private int playerRank = -1;
     private String opponentName;
     private Character opponentChar;
     private int opponentRank;
@@ -36,7 +36,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private Timer countdownTimer;
     private JLabel timerLabel;
     private JLabel gameInfo;
-    private JLabel playerRankLabel;
     private Timer pauseTimer;
 
     public TicTacToeClient(String playerName) throws Exception {
@@ -118,9 +117,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         gameInfo = new JLabel("Finding Player");
         gameInfo.setHorizontalAlignment(JLabel.CENTER);
 
-        playerRankLabel = new JLabel("Rank: - ");
-        playerRankLabel.setHorizontalAlignment(JLabel.CENTER);
-
         // Tic Tac Toe Board
         JPanel boardPanel = new JPanel();
         boardPanel.setLayout(new BorderLayout());
@@ -148,7 +144,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                             char result = server.makeMove(playerName, finalI, finalJ);
 //                            handleGameResult(result);
                             myTurn = false;
-                            gameInfo.setText(opponentName + "'s turn (" + opponentChar + ")");
+                            gameInfo.setText("Rank#" + opponentRank + " " +opponentName + "'s turn (" + opponentChar + ")");
 
                         } catch (RemoteException remoteException) {
                             remoteException.printStackTrace();
@@ -160,8 +156,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
         }
 
-
-        boardPanel.add(playerRankLabel, BorderLayout.SOUTH);
         boardPanel.add(gameInfo, BorderLayout.NORTH);
         boardPanel.add(gridPanel, BorderLayout.CENTER);
 
@@ -251,10 +245,10 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private void sendMessage() {
         String message = chatInput.getText().trim();
         if (!message.isEmpty()) {
-            chatArea.append(playerName + ": " + message + "\n");
+            chatArea.append("Rank#" + playerRank + " " +playerName + ": " + message + "\n");
             chatInput.setText("");
             try {
-                server.sendMessageToOpponent(playerName, message);
+                server.sendMessageToOpponent(playerRank, playerName, message);
             } catch (RemoteException e) {
                 e.printStackTrace();
                 chatArea.append("Failed to send message.\n");
@@ -273,7 +267,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             return;
         }
 
-        gameInfo.setText(playerName + "'s turn (" + playerChar + ")");
+        gameInfo.setText("Rank#" + playerRank + " " +playerName + "'s turn (" + playerChar + ")");
         myTurn = true;
 
         setupCountdownTimer();
@@ -286,12 +280,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 buttons[i][j].setText(String.valueOf(board[i][j]));
             }
         }
-    }
-
-    public void updatePlayerRank(int rank) throws RemoteException {
-        SwingUtilities.invokeLater(() -> {
-            playerRankLabel.setText("Rank: " + rank);
-        });
     }
 
     @Override
@@ -307,8 +295,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         this.playerRank = rank;
         this.opponentRank = opponentRank;
 
-        gameInfo.setText(opponentName + "'s turn (" + opponentChar + ")");
-//        updatePlayerRank(rank);
+        gameInfo.setText("Rank#" + opponentRank + " " +opponentName + "'s turn (" + opponentChar + ")");
     }
 
     private void playGame() throws RemoteException {
@@ -374,7 +361,12 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     countdown--;
                     gameInfo.setText("Game paused, Timer: " + countdown);
                     if (countdown <= 0) {
-                        chatArea.append("Game ended in a draw due to player disconnection\n");
+//                        chatArea.append("Game ended in a draw due to player disconnection\n");
+                        try {
+                            server.drawGameDisconnection(playerName, opponentName);
+                        } catch (RemoteException e) {
+                            throw new RuntimeException(e);
+                        }
                         gameInfo.setText("Game ended in a draw");
                         pauseTimer.cancel();
                     }
@@ -398,7 +390,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 if (myTurn) {
                     notifyTurn();
                 } else {
-                    gameInfo.setText(opponentName + "'s turn (" + opponentChar + ")");
+                    gameInfo.setText("Rank#" + opponentRank + " " +opponentName + "'s turn (" + opponentChar + ")");
                 }
             } catch (RemoteException e) {
                 e.printStackTrace();
