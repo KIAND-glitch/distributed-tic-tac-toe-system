@@ -12,4 +12,5 @@ public interface ClientCallback extends Remote {
     void askToPlayAgain() throws RemoteException;
     void resumeGame() throws RemoteException;
     void handlePause() throws RemoteException;
+    void updateGameInfo(String updatedGameInfo) throws RemoteException;
 }

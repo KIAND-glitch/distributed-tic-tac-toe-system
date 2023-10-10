@@ -53,7 +53,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             ClientCallback clientStub = (ClientCallback) UnicastRemoteObject.exportObject(this, 0);
             createAndShowGUI();
             isExported = true;
-            server.registerPlayer(playerName, clientStub);
+            server.registerPlayer(playerName, clientStub, false);
             startHeartbeat();
             playGame();
         }
@@ -105,7 +105,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
         quitButton.addActionListener(e -> {
             try {
-                server.quitGame(playerName);
+                server.quitGame(playerName, false);
             } catch (RemoteException ex) {
                 ex.printStackTrace();
             }
@@ -142,10 +142,11 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
                 buttons[i][j].addActionListener(e -> {
                     if (myTurn && buttons[finalI][finalJ].getText().equals(" ")) {
+                        System.out.println("button clicked" + finalI + finalJ);
                         try {
                             stopCountdownTimer();
                             char result = server.makeMove(playerName, finalI, finalJ);
-                            handleGameResult(result);
+//                            handleGameResult(result);
                             myTurn = false;
                             gameInfo.setText(opponentName + "'s turn (" + opponentChar + ")");
 
@@ -238,7 +239,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             Point randomMove = emptyCells.get(new Random().nextInt(emptyCells.size()));
             try {
                 char result = server.makeMove(playerName, randomMove.x, randomMove.y);
-                handleGameResult(result);
+//                handleGameResult(result);
                 myTurn = false;
 
             } catch (RemoteException ex) {
@@ -261,22 +262,8 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         }
     }
 
-
-
-    private void handleGameResult(char result) throws RemoteException {
-        switch (result) {
-            case 'D':
-                chatArea.append("Game draw\n");
-                break;
-            case 'W':
-                chatArea.append("You won!\n");
-                break;
-            case 'I':
-                chatArea.append("Invalid move: please try again\n");
-                break;
-            default:
-                break;
-        }
+    public void updateGameInfo(String updatedGameInfo) throws RemoteException {
+        gameInfo.setText(updatedGameInfo);
     }
 
     @Override
@@ -338,17 +325,34 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     public void askToPlayAgain() throws RemoteException {
         SwingUtilities.invokeLater(() -> {
             int response = JOptionPane.showConfirmDialog(null,
-                    "Game Over! Would you like to play again?",
+                    "Game Over! Find a new match?",
                     "Tic Tac Toe",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE);
 
             if(response == JOptionPane.YES_OPTION){
                 try {
-                    server.registerPlayer(playerName, this);
+                    // Reset game state
+                    myTurn = false;  // This line ensures players can't make moves until it's their turn
+
+                    for (int i = 0; i < 3; i++) {
+                        for (int j = 0; j < 3; j++) {
+                            buttons[i][j].setText(" ");
+                        }
+                    }
+                    gameInfo.setText("Finding Player");
+                    server.registerPlayer(playerName, this, true);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
+            }
+            else {
+                try {
+                    server.quitGame(playerName, true);
+                } catch (RemoteException ex) {
+                    ex.printStackTrace();
+                }
+                System.exit(0);
             }
         });
     }
@@ -385,6 +389,20 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 pauseTimer.cancel();
             }
             gameInfo.setText("Game resumed");
+            try {
+                // Fetch the current state of the game from the server
+                char[][] board = server.getCurrentBoardState(playerName);
+                displayBoard(board);
+
+                // Decide and Notify whose turn it is
+                if (myTurn) {
+                    notifyTurn();
+                } else {
+                    gameInfo.setText(opponentName + "'s turn (" + opponentChar + ")");
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         });
     }
 

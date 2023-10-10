@@ -12,11 +12,8 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     private HashMap<String, PlayerInfo> players = new HashMap<>();
     private Queue<String> waitingPlayers = new LinkedList<>();
     private HashMap<String, GameSession> activeGames = new HashMap<>();
-
     private HashMap<String, PlayerRanking> playerRankings = new HashMap<>();
-
     private HashMap<String, Long> lastHeartbeat = new HashMap<>();
-
 
     public TicTacToeServer() throws RemoteException {
         super();
@@ -40,7 +37,7 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
     @Override
     public synchronized void sendHeartbeat(String playerName) throws RemoteException {
-        System.out.println("Received heartbeat from: " + playerName);
+//        System.out.println("Received heartbeat from: " + playerName);
         lastHeartbeat.put(playerName, System.currentTimeMillis());
     }
 
@@ -64,17 +61,25 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
 
     @Override
-    public synchronized void registerPlayer(String playerName, ClientCallback client) throws RemoteException {
+    public synchronized void registerPlayer(String playerName, ClientCallback client, Boolean newGame) throws RemoteException {
         PlayerInfo newPlayer = new PlayerInfo(client, '-');
 
-        // Check if the player was in an active game before disconnection
-        GameSession previousGame = activeGames.get(playerName);
-        if (previousGame != null) {
-            String otherPlayer = previousGame.getPlayers().keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
-            try {
-                previousGame.getPlayers().get(otherPlayer).client.resumeGame();
-            } catch (RemoteException e) {
-                e.printStackTrace();
+        System.out.println("register player" + playerName);
+
+        if (!newGame) {
+            // Check if the player was in an active game before disconnection
+            GameSession previousGame = activeGames.get(playerName);
+            if (previousGame != null) {
+                String otherPlayer = previousGame.getPlayers().keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
+                try {
+                    previousGame.getPlayers().get(playerName).client.resumeGame();
+                    previousGame.getPlayers().get(otherPlayer).client.resumeGame();
+
+                    // previousGame.getPlayers().get(previousGame.getCurrentPlayer()).client.notifyTurn();
+                    return;
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
             }
         }
 
@@ -82,17 +87,7 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             playerRankings.put(playerName, new PlayerRanking(playerName));
         }
 
-        // If there's a player waiting, pair them up and start a game.
-        if (!waitingPlayers.isEmpty()) {
-            String opponentName = waitingPlayers.poll();
-            GameSession newGame = new GameSession(playerName, newPlayer, opponentName, players.remove(opponentName), this);
-            activeGames.put(playerName, newGame);
-            activeGames.put(opponentName, newGame);
-            newGame.assignCharactersAndStart();
-        } else {
-            waitingPlayers.add(playerName);
-            players.put(playerName, newPlayer);
-        }
+        matchPlayers(playerName, newPlayer);
     }
 
     @Override
@@ -102,9 +97,35 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         }
     }
 
+    private synchronized void matchPlayers(String playerName, PlayerInfo playerInfo) {
+        // If there's a player waiting, pair them up and start a game.
+        System.out.println("matching state");
+//        if(activeGames.get(playerName) != null) {
+//            activeGames.remove(playerName);
+//        }
+        System.out.println("waiting players" + waitingPlayers.toString());
+        if (!waitingPlayers.isEmpty()) {
+            String opponentName = waitingPlayers.poll();
+            GameSession newGame = new GameSession(playerName, playerInfo, opponentName, players.remove(opponentName), this);
+            activeGames.put(playerName, newGame);
+            activeGames.put(opponentName, newGame);
+            System.out.println("current active games are " + activeGames.toString());
+            try {
+                newGame.assignCharactersAndStart();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        } else {
+            waitingPlayers.add(playerName);
+            players.put(playerName, playerInfo);
+        }
+    }
+
+
     @Override
     public synchronized Character makeMove(String playerName, int row, int col) throws RemoteException {
         GameSession game = activeGames.get(playerName);
+        System.out.println("active games" + activeGames.toString());
         if (game != null) {
             return game.makeMove(playerName, row, col);
         }
@@ -112,15 +133,18 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     }
 
     @Override
-    public synchronized void quitGame(String playerName) throws RemoteException {
+    public synchronized void quitGame(String playerName, Boolean gameOver) throws RemoteException {
         GameSession gameSession = activeGames.get(playerName);
         if (gameSession != null) {
             String otherPlayer = gameSession.getPlayers().keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
-            gameSession.getPlayers().get(otherPlayer).client.displayMessage(playerName + " has quit the game! You are the winner!");
-
-            // Cleanup resources
+            // Cleanup resources first
             activeGames.remove(playerName);
-            activeGames.remove(otherPlayer);
+//            activeGames.remove(otherPlayer);
+
+            if (!gameOver) {
+                gameSession.getPlayers().get(otherPlayer).client.updateGameInfo(playerName + " quit! Player '" + otherPlayer + "' wins");
+                matchPlayers(otherPlayer, gameSession.getPlayers().get(otherPlayer));  // Match the other player with waiting players
+            }
         }
     }
 
@@ -144,6 +168,11 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             }
         }
         return -1;  // if player not found (this shouldn't happen)
+    }
+
+    public char[][] getCurrentBoardState(String playerName) throws RemoteException {
+        GameSession game = activeGames.get(playerName);
+        return game.getBoard();
     }
 
     public static void main(String[] args) {

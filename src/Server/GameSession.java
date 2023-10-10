@@ -51,6 +51,8 @@ public class GameSession {
             return 'I';  // Invalid move
         }
 
+        System.out.println("made move" + playerName + row + col);
+
         board[row][col] = players.get(playerName).symbol;
         players.get(playerName).client.displayBoard(board);
 
@@ -67,24 +69,24 @@ public class GameSession {
             players.get(currentPlayer).client.notifyTurn();
         } else {
             // If the game is over
-            String winningMessage = "Game Over! The winner is ";
-            String youWon = winningMessage + "You!";
-            String opponentWon = winningMessage + "Your opponent!";
-
             if (result == 'D') {
-                players.get(playerName).client.displayMessage("Game Over! It's a draw!");
-                players.get(otherPlayer).client.displayMessage("Game Over! It's a draw!");
+                players.get(playerName).client.updateGameInfo("Match Drawn");
+                players.get(otherPlayer).client.updateGameInfo("Match Drawn");
                 server.updatePointsAfterGame(playerName, 2);
                 server.updatePointsAfterGame(otherPlayer, 2);
 
             } else if (result == players.get(playerName).symbol) { // Current player wins
-                players.get(playerName).client.displayMessage(youWon);
-                players.get(otherPlayer).client.displayMessage(opponentWon);
+                System.out.println("player" + playerName );
+                System.out.println("other player" + otherPlayer );
+                players.get(playerName).client.updateGameInfo("Player "+ playerName +" wins!");
+                players.get(otherPlayer).client.updateGameInfo("Player "+ playerName +" wins!");
                 server.updatePointsAfterGame(playerName, 5);
                 server.updatePointsAfterGame(otherPlayer, -5);
             } else { // Opponent wins
-                players.get(playerName).client.displayMessage(opponentWon);
-                players.get(otherPlayer).client.displayMessage(youWon);
+                System.out.println("player" + playerName );
+                System.out.println("other player" + otherPlayer );
+                players.get(playerName).client.updateGameInfo("Player " + otherPlayer + " wins!");
+                players.get(otherPlayer).client.updateGameInfo("Player " + otherPlayer + " wins!");
                 server.updatePointsAfterGame(playerName, -5);
                 server.updatePointsAfterGame(otherPlayer, 5);
             }
@@ -133,4 +135,11 @@ public class GameSession {
         return null;
     }
 
+    public char[][] getBoard() {
+        return board;
+    }
+
+    public String getCurrentPlayer() {
+        return currentPlayer;
+    }
 }
