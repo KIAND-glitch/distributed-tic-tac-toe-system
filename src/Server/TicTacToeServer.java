@@ -58,8 +58,6 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         // Handle the disconnection, e.g., end the game, notify the opponent, etc.
     }
 
-
-
     @Override
     public synchronized void registerPlayer(String playerName, ClientCallback client, Boolean newGame) throws RemoteException {
         PlayerInfo newPlayer = new PlayerInfo(client, '-');

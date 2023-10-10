@@ -1,37 +1,26 @@
 package Server;
 
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Random;
 
 public class GameSession {
     private HashMap<String, PlayerInfo> players = new HashMap<>();
     private char[][] board = new char[3][3];
     private String currentPlayer;
-
-    private String[] playerChat;
-
     private TicTacToeServer server;
-
-
-    public HashMap<String, PlayerInfo> getPlayers() {
-        return players;
-    }
+    private Random random = new Random();
 
     public GameSession(String player1, PlayerInfo info1, String player2, PlayerInfo info2, TicTacToeServer server) {
         players.put(player1, info1);
         players.put(player2, info2);
         this.server = server;
-
-        // Initialize the board with spaces
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 board[i][j] = ' ';
             }
         }
-
-        currentPlayer = player1; // Start with the first player
+        currentPlayer = random.nextBoolean() ? player1 : player2;
     }
 
     public void assignCharactersAndStart() throws RemoteException {
@@ -139,7 +128,7 @@ public class GameSession {
         return board;
     }
 
-    public String getCurrentPlayer() {
-        return currentPlayer;
+    public HashMap<String, PlayerInfo> getPlayers() {
+        return players;
     }
 }
