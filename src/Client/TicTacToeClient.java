@@ -24,7 +24,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private String opponentName;
     private Character opponentChar;
     private int opponentRank;
-    private List<String> chatMessages = new ArrayList<>();
     private boolean isExported = false;
     private boolean myTurn = false;
     private JFrame frame;
@@ -54,7 +53,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             isExported = true;
             server.registerPlayer(playerName, clientStub, false);
             startHeartbeat();
-            playGame();
         }
     }
 
@@ -120,7 +118,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         // Tic Tac Toe Board
         JPanel boardPanel = new JPanel();
         boardPanel.setLayout(new BorderLayout());
-        // boardPanel.setPreferredSize(new Dimension(frame.getWidth() * 7 / 12, frame.getHeight()));
         boardPanel.setPreferredSize(new Dimension(400, 400));
 
 
@@ -138,11 +135,9 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
                 buttons[i][j].addActionListener(e -> {
                     if (myTurn && buttons[finalI][finalJ].getText().equals(" ")) {
-                        System.out.println("button clicked" + finalI + finalJ);
                         try {
                             stopCountdownTimer();
-                            char result = server.makeMove(playerName, finalI, finalJ);
-//                            handleGameResult(result);
+                            server.makeMove(playerName, finalI, finalJ);
                             myTurn = false;
                             gameInfo.setText("Rank#" + opponentRank + " " +opponentName + "'s turn (" + opponentChar + ")");
 
@@ -232,8 +227,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         if (!emptyCells.isEmpty()) {
             Point randomMove = emptyCells.get(new Random().nextInt(emptyCells.size()));
             try {
-                char result = server.makeMove(playerName, randomMove.x, randomMove.y);
-//                handleGameResult(result);
+                server.makeMove(playerName, randomMove.x, randomMove.y);
                 myTurn = false;
 
             } catch (RemoteException ex) {
@@ -298,16 +292,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         gameInfo.setText("Rank#" + opponentRank + " " +opponentName + "'s turn (" + opponentChar + ")");
     }
 
-    private void playGame() throws RemoteException {
-        while (true) {
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     @Override
     public void askToPlayAgain() throws RemoteException {
         SwingUtilities.invokeLater(() -> {
@@ -319,14 +303,13 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
             if(response == JOptionPane.YES_OPTION){
                 try {
-                    // Reset game state
-                    myTurn = false;  // This line ensures players can't make moves until it's their turn
-
+                    myTurn = false;
                     for (int i = 0; i < 3; i++) {
                         for (int j = 0; j < 3; j++) {
                             buttons[i][j].setText(" ");
                         }
                     }
+                    chatArea.setText("");
                     gameInfo.setText("Finding Player");
                     server.registerPlayer(playerName, this, true);
                 } catch (RemoteException e) {
@@ -361,7 +344,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     countdown--;
                     gameInfo.setText("Game paused, Timer: " + countdown);
                     if (countdown <= 0) {
-//                        chatArea.append("Game ended in a draw due to player disconnection\n");
                         try {
                             server.drawGameDisconnection(playerName, opponentName);
                         } catch (RemoteException e) {

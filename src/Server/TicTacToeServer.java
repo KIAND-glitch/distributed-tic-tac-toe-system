@@ -86,12 +86,11 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     }
 
     @Override
-    public synchronized Character makeMove(String playerName, int row, int col) throws RemoteException {
+    public synchronized void makeMove(String playerName, int row, int col) throws RemoteException {
         GameSession game = activeGames.get(playerName);
         if (game != null) {
-            return game.makeMove(playerName, row, col);
+            game.makeMove(playerName, row, col);
         }
-        return 'I';
     }
 
     @Override
