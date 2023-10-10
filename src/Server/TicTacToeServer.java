@@ -41,8 +41,13 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
         if (!newGame) {
             // Check if the player was in an active game before disconnection
+            System.out.println("connection new connection attempt");
             GameSession previousGame = activeGames.get(playerName);
+            System.out.println("previous game" + previousGame);
             if (previousGame != null) {
+                newPlayer = previousGame.getPlayers().get(playerName);
+                newPlayer.setClient(client);
+                previousGame.reconnection(playerName, newPlayer);
                 String otherPlayer = previousGame.getPlayers().keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
                 try {
                     previousGame.getPlayers().get(playerName).client.resumeGame();

@@ -133,6 +133,18 @@ public class GameSession {
         return board;
     }
 
+    public void reconnection(String playerName,PlayerInfo info ) throws RemoteException {
+        players.put(playerName, info);
+        if(playerName.equals(currentPlayer)){
+            info.client.assignCharacter(players.get(currentPlayer).symbol, getOtherPlayer(currentPlayer), server.getPlayerRank(currentPlayer), server.getPlayerRank(getOtherPlayer(currentPlayer)));
+        }
+        else {
+            String otherPlayer = getOtherPlayer(currentPlayer);
+            info.client.assignCharacter(players.get(otherPlayer).symbol, currentPlayer, server.getPlayerRank(otherPlayer), server.getPlayerRank(currentPlayer));
+
+        }
+    }
+
     public HashMap<String, PlayerInfo> getPlayers() {
         return players;
     }

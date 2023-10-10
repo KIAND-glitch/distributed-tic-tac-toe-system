@@ -169,7 +169,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         chatBottomPanel.add(sendButton, BorderLayout.EAST);
 
         JPanel chatPanel = new JPanel(new BorderLayout());
-        // chatPanel.setPreferredSize(new Dimension(frame.getWidth() * 3 / 12, frame.getHeight()));
         chatPanel.setPreferredSize(new Dimension(250, frame.getHeight()));
 
 
@@ -229,6 +228,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             try {
                 server.makeMove(playerName, randomMove.x, randomMove.y);
                 myTurn = false;
+                timerLabel.setText("Timer: 20");
 
             } catch (RemoteException ex) {
                 ex.printStackTrace();
@@ -331,6 +331,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         SwingUtilities.invokeLater(() -> {
             gameInfo.setText("Game paused, Timer: 30");
 
+            timerLabel.setText("Timer: -");
 
             if (pauseTimer != null) {
                 pauseTimer.cancel();
@@ -364,6 +365,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
             gameInfo.setText("Game resumed");
             try {
+                setupCountdownTimer();
                 // Fetch the current state of the game from the server
                 char[][] board = server.getCurrentBoardState(playerName);
                 displayBoard(board);

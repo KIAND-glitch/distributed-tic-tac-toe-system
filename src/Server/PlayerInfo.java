@@ -9,4 +9,8 @@ public class PlayerInfo {
         this.client = client;
         this.symbol = symbol;
     }
+
+    public void setClient(ClientCallback client) {
+        this.client = client;
+    }
 }
