@@ -331,6 +331,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         SwingUtilities.invokeLater(() -> {
             gameInfo.setText("Game paused, Timer: 30");
 
+            stopCountdownTimer();
             timerLabel.setText("Timer: -");
 
             if (pauseTimer != null) {
@@ -347,6 +348,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     if (countdown <= 0) {
                         try {
                             server.drawGameDisconnection(playerName, opponentName);
+                            askToPlayAgain();
                         } catch (RemoteException e) {
                             throw new RuntimeException(e);
                         }
