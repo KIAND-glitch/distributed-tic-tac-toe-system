@@ -53,6 +53,11 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 try {
                     previousGame.getPlayers().get(playerName).client.resumeGame();
                     previousGame.getPlayers().get(otherPlayer).client.resumeGame();
+                    Timer disconnectionTimer = disconnectionTimers.get(playerName);
+                    if (disconnectionTimer != null) {
+                        disconnectionTimer.cancel();
+                        disconnectionTimers.remove(playerName);
+                    }
                     return;
                 } catch (RemoteException e) {
                     e.printStackTrace();

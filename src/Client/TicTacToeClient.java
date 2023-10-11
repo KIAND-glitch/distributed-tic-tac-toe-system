@@ -73,7 +73,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 try {
                     server.sendHeartbeat(playerName);
                 } catch (RemoteException e) {
-                    e.printStackTrace();
                     SwingUtilities.invokeLater(() -> {
                         JOptionPane.showMessageDialog(frame, "Server unavailable", "Error", JOptionPane.ERROR_MESSAGE);
                         System.exit(0);
@@ -149,6 +148,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                             stopCountdownTimer();
                             server.makeMove(playerName, finalI, finalJ);
                             myTurn = false;
+                            stopCountdownTimer();
                             gameInfo.setText("Rank#" + opponentRank + " " +opponentName + "'s turn (" + opponentChar + ")");
 
                         } catch (RemoteException remoteException) {
@@ -220,6 +220,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private void stopCountdownTimer() {
         if (countdownTimer != null) {
             countdownTimer.cancel();
+            timerLabel.setText("Timer: -");
             countdownTimer = null;
         }
     }
@@ -238,7 +239,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             try {
                 server.makeMove(playerName, randomMove.x, randomMove.y);
                 myTurn = false;
-                timerLabel.setText("Timer: 20");
+                stopCountdownTimer();
 
             } catch (RemoteException ex) {
                 ex.printStackTrace();
@@ -314,6 +315,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             if(response == JOptionPane.YES_OPTION){
                 try {
                     myTurn = false;
+                    stopCountdownTimer();
                     for (int i = 0; i < 3; i++) {
                         for (int j = 0; j < 3; j++) {
                             buttons[i][j].setText(" ");
@@ -342,7 +344,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             gameInfo.setText("Game paused, Timer: 30");
 
             stopCountdownTimer();
-            timerLabel.setText("Timer: -");
+            sendButton.setEnabled(false);
 
             if (pauseTimer != null) {
                 pauseTimer.cancel();
@@ -374,9 +376,9 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             if (pauseTimer != null) {
                 pauseTimer.cancel();
             }
+            sendButton.setEnabled(true);
             gameInfo.setText("Game resumed");
             try {
-                setupCountdownTimer();
                 // Fetch the current state of the game from the server
                 char[][] board = server.getCurrentBoardState(playerName);
                 displayBoard(board);
