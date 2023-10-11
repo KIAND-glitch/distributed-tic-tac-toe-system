@@ -15,6 +15,7 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     private HashMap<String, GameSession> activeGames = new HashMap<>();
     private HashMap<String, PlayerRanking> playerRankings = new HashMap<>();
     private ConcurrentHashMap<String, Long> lastHeartbeat = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Timer> disconnectionTimers = new ConcurrentHashMap<>();
 
     public TicTacToeServer() throws RemoteException {
         super();
@@ -159,14 +160,39 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             String otherPlayer = gameSession.getOtherPlayer(playerName);
             try {
                 gameSession.getPlayers().get(otherPlayer).client.handlePause();
+
+                Timer disconnectionTimer = new Timer();
+                disconnectionTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        terminateGameDueToDisconnection(playerName, otherPlayer);
+                    }
+                }, 30000);  // 30 seconds
+
+                disconnectionTimers.put(playerName, disconnectionTimer);
+
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         }
-        // It's safe to remove directly from a ConcurrentHashMap
         lastHeartbeat.remove(playerName);
-        // Handle the disconnection, e.g., end the game, notify the opponent, etc.
     }
+
+    private synchronized void terminateGameDueToDisconnection(String playerName, String otherPlayer) {
+        GameSession gameSession = activeGames.get(playerName);
+        if (gameSession != null) {
+            try {
+                gameSession.getPlayers().get(otherPlayer).client.updateGameInfo(playerName + " did not reconnect in time. Game drawn.");
+                gameSession.getPlayers().get(otherPlayer).client.refreshBoard();
+                activeGames.remove(playerName);
+                activeGames.remove(otherPlayer);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+        disconnectionTimers.remove(playerName);
+    }
+
 
     public static void main(String[] args) {
         try {

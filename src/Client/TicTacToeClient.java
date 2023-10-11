@@ -362,7 +362,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                         } catch (RemoteException e) {
                             throw new RuntimeException(e);
                         }
-                        gameInfo.setText("Game ended in a draw");
                         pauseTimer.cancel();
                     }
                 }
