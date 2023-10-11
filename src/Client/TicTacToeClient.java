@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.rmi.Naming;
 import java.rmi.NoSuchObjectException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
@@ -39,22 +40,31 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     public TicTacToeClient(String playerName) throws Exception {
         this.playerName = playerName;
-        server = (ServerInterface) Naming.lookup("rmi://localhost/TicTacToeServer");
 
         try {
-            UnicastRemoteObject.unexportObject(this, true);
-        } catch (NoSuchObjectException e) {
-            e.printStackTrace();
-        }
+            server = (ServerInterface) Naming.lookup("rmi://localhost/TicTacToeServer");
 
-        if (!isExported) {
-            ClientCallback clientStub = (ClientCallback) UnicastRemoteObject.exportObject(this, 0);
-            createAndShowGUI();
-            isExported = true;
-            server.registerPlayer(playerName, clientStub, false);
-            startHeartbeat();
+            try {
+                UnicastRemoteObject.unexportObject(this, true);
+            } catch (NoSuchObjectException e) {
+                e.printStackTrace();
+            }
+
+            if (!isExported) {
+                ClientCallback clientStub = (ClientCallback) UnicastRemoteObject.exportObject(this, 0);
+                createAndShowGUI();
+                isExported = true;
+                server.registerPlayer(playerName, clientStub, false);
+                startHeartbeat();
+            }
+        } catch (RemoteException | NotBoundException e) {
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(frame, "Server unavailable", "Error", JOptionPane.ERROR_MESSAGE);
+                System.exit(0);
+            });
         }
     }
+
 
     private void startHeartbeat() {
         new Timer().scheduleAtFixedRate(new TimerTask() {
@@ -383,6 +393,15 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
         });
     }
+
+    public void refreshBoard() throws RemoteException{
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                buttons[i][j].setText(" ");
+            }
+        }
+    }
+
 
     public static void main(String[] args) {
         if (args.length < 1) {

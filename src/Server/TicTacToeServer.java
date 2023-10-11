@@ -108,6 +108,8 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 gameSession.getPlayers().get(otherPlayer).client.updateGameInfo(playerName + " quit! Player '" + otherPlayer + "' wins");
                 matchPlayers(otherPlayer, gameSession.getPlayers().get(otherPlayer));
                 updatePointsAfterGame(otherPlayer, 5);
+                gameSession.getPlayers().get(otherPlayer).client.refreshBoard();
+                gameSession.getPlayers().get(otherPlayer).client.askToPlayAgain();
             }
         }
     }
