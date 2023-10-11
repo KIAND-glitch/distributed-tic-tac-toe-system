@@ -6,6 +6,7 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TicTacToeServer extends UnicastRemoteObject implements ServerInterface {
 
@@ -13,18 +14,18 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     private Queue<String> waitingPlayers = new LinkedList<>();
     private HashMap<String, GameSession> activeGames = new HashMap<>();
     private HashMap<String, PlayerRanking> playerRankings = new HashMap<>();
-    private HashMap<String, Long> lastHeartbeat = new HashMap<>();
+    private ConcurrentHashMap<String, Long> lastHeartbeat = new ConcurrentHashMap<>();
 
     public TicTacToeServer() throws RemoteException {
         super();
         new Thread(() -> {
             while (true) {
                 long now = System.currentTimeMillis();
-                for (Map.Entry<String, Long> entry : lastHeartbeat.entrySet()) {
-                    if (now - entry.getValue() > 5000) {
-                        handleClientDisconnection(entry.getKey());
+                lastHeartbeat.forEach((player, timestamp) -> {
+                    if (now - timestamp > 3000) {
+                        handleClientDisconnection(player);
                     }
-                }
+                });
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
@@ -32,7 +33,6 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 }
             }
         }).start();
-
     }
 
     @Override
@@ -145,13 +145,13 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
     @Override
     public synchronized void sendHeartbeat(String playerName) throws RemoteException {
+        System.out.println("heartbeat recieved" + playerName);
         lastHeartbeat.put(playerName, System.currentTimeMillis());
     }
 
-    private synchronized void handleClientDisconnection(String playerName) {
+    private void handleClientDisconnection(String playerName) {
         System.out.println("Client " + playerName + " is disconnected.");
 
-        // Check if the player was in an active game
         GameSession gameSession = activeGames.get(playerName);
         if (gameSession != null) {
             String otherPlayer = gameSession.getOtherPlayer(playerName);
@@ -161,6 +161,7 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 e.printStackTrace();
             }
         }
+        // It's safe to remove directly from a ConcurrentHashMap
         lastHeartbeat.remove(playerName);
         // Handle the disconnection, e.g., end the game, notify the opponent, etc.
     }
