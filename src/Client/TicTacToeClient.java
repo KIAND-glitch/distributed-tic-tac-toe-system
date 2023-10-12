@@ -44,9 +44,21 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             }
         } catch (RemoteException | NotBoundException e) {
             SwingUtilities.invokeLater(() -> {
-                JOptionPane.showMessageDialog(null, "Server unavailable", "Error", JOptionPane.ERROR_MESSAGE);
-                System.exit(0);
+                final JOptionPane optionPane = new JOptionPane("Server unavailable", JOptionPane.ERROR_MESSAGE);
+                final JDialog dialog = optionPane.createDialog("Error");
+
+                java.util.Timer timer = new java.util.Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        dialog.dispose();
+                        System.exit(0);
+                    }
+                }, 5000); // 5 seconds
+
+                dialog.setVisible(true);
             });
+
         }
     }
     private void startHeartbeat() {
@@ -57,9 +69,21 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                     server.sendHeartbeat(playerName);
                 } catch (RemoteException e) {
                     SwingUtilities.invokeLater(() -> {
-                        JOptionPane.showMessageDialog(null, "Server unavailable", "Error", JOptionPane.ERROR_MESSAGE);
-                        System.exit(0);
+                        final JOptionPane optionPane = new JOptionPane("Server unavailable", JOptionPane.ERROR_MESSAGE);
+                        final JDialog dialog = optionPane.createDialog("Error");
+
+                        java.util.Timer timer = new java.util.Timer();
+                        timer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                dialog.dispose();
+                                System.exit(0);
+                            }
+                        }, 5000);
+
+                        dialog.setVisible(true);
                     });
+
                 }
             }
         }, 0, 2000);

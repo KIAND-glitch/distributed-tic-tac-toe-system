@@ -12,7 +12,7 @@ public class PlayerRanking {
     }
 
     public void subtractPoints(int pointsToSubtract) {
-        this.points -= pointsToSubtract;
+        this.points += pointsToSubtract;
     }
 
     public int getPoints() {

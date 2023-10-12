@@ -46,12 +46,12 @@ public class TicTacToeGUI {
         countdownTimer = new Timer();
 
         timeLeft = 20;
-        timerLabel.setText("Timer: " + timeLeft);
+        timerLabel.setText(String.valueOf(timeLeft));
         countdownTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 timeLeft--;
-                timerLabel.setText("Timer: " + timeLeft);
+                timerLabel.setText(String.valueOf(timeLeft));
 
                 if (timeLeft <= 0) {
                     makeRandomMove();
@@ -72,7 +72,7 @@ public class TicTacToeGUI {
         timerText.setAlignmentX(Component.CENTER_ALIGNMENT);
         timerQuitPanel.add(timerText);
 
-        timerLabel = new JLabel("Timer: 20");
+        timerLabel = new JLabel("20");
         timerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         timerQuitPanel.add(timerLabel);
 
@@ -146,10 +146,13 @@ public class TicTacToeGUI {
             if (client.isMyTurn() && buttons[i][j].getText().equals(" ")) {
                 System.out.println("Clicked" + i + j);
                 try {
-                    client.getServer().makeMove(client.getPlayerName(), i, j);
+                    char result = client.getServer().makeMove(client.getPlayerName(), i, j);
                     client.setMyTurn(false);
                     stopCountdownTimer();
-                    gameInfo.setText("Rank#" + client.getOpponentRank() + " " + client.getOpponentName() + "'s turn (" + client.getOpponentChar() + ")");
+                    if(result == 'N') {
+                        gameInfo.setText("Rank#" + client.getOpponentRank() + " " + client.getOpponentName() + "'s turn (" + client.getOpponentChar() + ")");
+                    }
+
 
                 } catch (RemoteException remoteException) {
                     remoteException.printStackTrace();
@@ -174,9 +177,12 @@ public class TicTacToeGUI {
 
             if (!emptyCells.isEmpty()) {
                 Point randomMove = emptyCells.get(new Random().nextInt(emptyCells.size()));
-                client.getServer().makeMove(client.getPlayerName(), randomMove.x, randomMove.y);
+                char result = client.getServer().makeMove(client.getPlayerName(), randomMove.x, randomMove.y);
                 client.setMyTurn(false);
-                gameInfo.setText("Rank#" + client.getOpponentRank() + " " + client.getOpponentName() + "'s turn (" + client.getOpponentChar() + ")");                stopCountdownTimer();
+                if (result =='D') {
+                    gameInfo.setText("Rank#" + client.getOpponentRank() + " " + client.getOpponentName() + "'s turn (" + client.getOpponentChar() + ")");
+                }
+                stopCountdownTimer();
             }
 
         } catch (RemoteException ex) {
@@ -232,7 +238,7 @@ public class TicTacToeGUI {
     public void stopCountdownTimer() {
         if (countdownTimer != null) {
             countdownTimer.cancel();
-            timerLabel.setText("Timer: -");
+            timerLabel.setText("20");
             countdownTimer = null;
         }
     }

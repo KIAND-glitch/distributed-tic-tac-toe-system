@@ -72,7 +72,7 @@ public class GameSession {
             } else {
                 handlePlayerWin(result, playerName, otherPlayer);
             }
-            askForRematch();
+             askForRematch();
         }
     }
 
@@ -89,8 +89,9 @@ public class GameSession {
     }
 
     private void informPlayers(String message, String playerName, String otherPlayer) throws RemoteException {
-        players.get(playerName).client.updateGameInfo(message);
+
         players.get(otherPlayer).client.updateGameInfo(message);
+        players.get(playerName).client.updateGameInfo(message);
     }
 
     public char evaluateGame() {

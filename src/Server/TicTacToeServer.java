@@ -1,7 +1,9 @@
 package Server;
 
 import Client.ClientCallback;
+import Client.TicTacToeClient;
 
+import java.rmi.ConnectException;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -23,11 +25,26 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 long now = System.currentTimeMillis();
                 lastHeartbeat.forEach((player, timestamp) -> {
                     if (now - timestamp > 3000) {
-                        handleClientDisconnection(player);
+                        try {
+                            handleClientDisconnection(player);
+                        } catch (RemoteException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 });
                 try {
                     Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                }
+            }
+        }).start();
+
+        // Periodically print the leaderboard
+        new Thread(() -> {
+            while (true) {
+                printLeaderboard();
+                try {
+                    Thread.sleep(10000); // 10 seconds interval
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -35,17 +52,19 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         }).start();
     }
 
-    @Override
     public synchronized void registerPlayer(String playerName, ClientCallback client, Boolean newGame) throws RemoteException {
         PlayerInfo newPlayer = new PlayerInfo(client, '-');
 
         if (!newGame) {
             // Check if the player was in an active game before disconnection
-            System.out.println("connection new connection attempt");
             GameSession previousGame = activeGames.get(playerName);
-            System.out.println("previous game" + previousGame);
             if (previousGame != null) {
                 newPlayer = previousGame.getPlayers().get(playerName);
+                String opponent = previousGame.getOtherPlayer(playerName);
+                if (activeGames.get(opponent) != previousGame) {
+                    activeGames.remove(playerName);
+                    matchPlayers(playerName, newPlayer);
+                }
                 newPlayer.setClient(client);
                 previousGame.reconnection(playerName, newPlayer);
                 String otherPlayer = previousGame.getOtherPlayer(playerName);
@@ -64,12 +83,17 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             }
         }
 
-        if (!playerRankings.containsKey(playerName)) {
-            playerRankings.put(playerName, new PlayerRanking());
-        }
+        initializePlayerRanking(playerName);
 
         matchPlayers(playerName, newPlayer);
     }
+
+    private void initializePlayerRanking(String playerName) {
+        if (!playerRankings.containsKey(playerName)) {
+            playerRankings.put(playerName, new PlayerRanking());
+        }
+    }
+
 
     @Override
     public void sendMessageToOpponent(int playerRank, String playerName, String message) throws RemoteException {
@@ -96,18 +120,19 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     }
 
     @Override
-    public synchronized void makeMove(String playerName, int row, int col) throws RemoteException {
+    public synchronized char makeMove(String playerName, int row, int col) throws RemoteException {
         GameSession game = activeGames.get(playerName);
         if (game != null) {
-            game.makeMove(playerName, row, col);
+            return game.makeMove(playerName, row, col);
         }
+        return 0;
     }
 
     @Override
     public synchronized void quitGame(String playerName, Boolean gameOver) throws RemoteException {
         GameSession gameSession = activeGames.get(playerName);
         if (gameSession != null) {
-            String otherPlayer = gameSession.getPlayers().keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
+            String otherPlayer = gameSession.getOtherPlayer(playerName);
             activeGames.remove(playerName);
             if (!gameOver) {
                 gameSession.getPlayers().get(otherPlayer).client.updateGameInfo(playerName + " quit! Player '" + otherPlayer + "' wins");
@@ -140,10 +165,10 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
         for (int i = 0; i < sortedPlayers.size(); i++) {
             if (sortedPlayers.get(i).getPoints() == playerRankings.get(playerName).getPoints()) {
-                return i + 1;  // ranks start from 1
+                return i + 1;
             }
         }
-        return -1;  // if player not found (this shouldn't happen)
+        return -1;
     }
 
     public char[][] getCurrentBoardState(String playerName) throws RemoteException {
@@ -152,19 +177,32 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
     @Override
     public synchronized void sendHeartbeat(String playerName) throws RemoteException {
-        System.out.println("heartbeat recieved" + playerName);
         lastHeartbeat.put(playerName, System.currentTimeMillis());
     }
 
-    private void handleClientDisconnection(String playerName) {
-        System.out.println("Client " + playerName + " is disconnected.");
+    private boolean invokeHandlePause(ClientCallback client) {
+        try {
+            client.handlePause();
+            return true;
+        } catch (ConnectException e) {
+            // Client is not available.
+            return false;
+        } catch (RemoteException e) {
+            // Other RMI errors. Handle or log this as per your needs.
+            e.printStackTrace();
+            return false;
+        }
+    }
 
+
+    private void handleClientDisconnection(String playerName) throws RemoteException {
         GameSession gameSession = activeGames.get(playerName);
+
         if (gameSession != null) {
             String otherPlayer = gameSession.getOtherPlayer(playerName);
-            try {
-                gameSession.getPlayers().get(otherPlayer).client.handlePause();
 
+            // Only proceed if the other player's client is still connected.
+            if (invokeHandlePause(gameSession.getPlayers().get(otherPlayer).client)) {
                 Timer disconnectionTimer = new Timer();
                 disconnectionTimer.schedule(new TimerTask() {
                     @Override
@@ -174,13 +212,17 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 }, 30000);
 
                 disconnectionTimers.put(playerName, disconnectionTimer);
-
-            } catch (RemoteException e) {
-                e.printStackTrace();
+            } else {
+                // Handle scenario where both players are disconnected.
+                activeGames.remove(playerName);
+                activeGames.remove(otherPlayer);
+                drawGameDisconnection(playerName, otherPlayer);
+                return;
             }
         }
         lastHeartbeat.remove(playerName);
     }
+
 
     private synchronized void terminateGameDueToDisconnection(String playerName, String otherPlayer) {
         GameSession gameSession = activeGames.get(playerName);
@@ -190,12 +232,28 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 gameSession.getPlayers().get(otherPlayer).client.refreshBoard();
                 activeGames.remove(playerName);
                 activeGames.remove(otherPlayer);
+                drawGameDisconnection(playerName, otherPlayer);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         }
         disconnectionTimers.remove(playerName);
     }
+
+    private void printLeaderboard() {
+        List<Map.Entry<String, PlayerRanking>> sortedRankings = new ArrayList<>(playerRankings.entrySet());
+
+        sortedRankings.sort((entry1, entry2) -> Integer.compare(entry2.getValue().getPoints(), entry1.getValue().getPoints()));
+
+        System.out.println("------ Leaderboard ------");
+        for (int i = 0; i < sortedRankings.size(); i++) {
+            String player = sortedRankings.get(i).getKey();
+            int points = sortedRankings.get(i).getValue().getPoints();
+            System.out.println((i + 1) + ". " + player + " - " + points + " points");
+        }
+        System.out.println("-------------------------");
+    }
+
 
     public static void main(String[] args) {
         try {
