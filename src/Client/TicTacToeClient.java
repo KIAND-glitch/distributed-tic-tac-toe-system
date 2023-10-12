@@ -83,11 +83,22 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     }
 
     private void createAndShowGUI() {
+        initializeFrame();
+        setupTimerQuitPanel();
+        setupGameInfoLabel();
+        setupBoardPanel();
+        setupChatPanel();
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    private void initializeFrame() {
         frame = new JFrame("Tic Tac Toe: " + playerName);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(600, 400);
+    }
 
-        // Timer and Quit Button Panel
+    private void setupTimerQuitPanel() {
         JPanel timerQuitPanel = new JPanel();
         timerQuitPanel.setLayout(new BoxLayout(timerQuitPanel, BoxLayout.Y_AXIS));
 
@@ -99,13 +110,19 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
         timerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         timerQuitPanel.add(timerLabel);
 
-        // Spacer to push the quit button to the bottom
         timerQuitPanel.add(Box.createVerticalGlue());
 
-        JButton quitButton = new JButton("Quit");
-        quitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JButton quitButton = createQuitButton();
         timerQuitPanel.add(quitButton);
 
+        timerQuitPanel.setPreferredSize(new Dimension(frame.getWidth() * 2 / 12, frame.getHeight()));
+
+        frame.getContentPane().add(timerQuitPanel, BorderLayout.WEST);
+    }
+
+    private JButton createQuitButton() {
+        JButton quitButton = new JButton("Quit");
+        quitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         quitButton.setPreferredSize(new Dimension(100, 30));
         quitButton.setMaximumSize(new Dimension(100, 30));
 
@@ -118,84 +135,95 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
             System.exit(0);
         });
 
-        timerQuitPanel.setPreferredSize(new Dimension(frame.getWidth() * 2 / 12, frame.getHeight()));
+        return quitButton;
+    }
 
-        // Player's turn label above the board
+    private void setupGameInfoLabel() {
         gameInfo = new JLabel("Finding Player");
         gameInfo.setHorizontalAlignment(JLabel.CENTER);
+    }
 
-        // Tic Tac Toe Board
+    private void setupBoardPanel() {
         JPanel boardPanel = new JPanel();
         boardPanel.setLayout(new BorderLayout());
         boardPanel.setPreferredSize(new Dimension(400, 400));
 
+        JPanel gridPanel = createGridPanel();
 
+        boardPanel.add(gameInfo, BorderLayout.NORTH);
+        boardPanel.add(gridPanel, BorderLayout.CENTER);
+
+        frame.getContentPane().add(boardPanel, BorderLayout.CENTER);
+    }
+
+    private JPanel createGridPanel() {
         JPanel gridPanel = new JPanel(new GridLayout(3, 3, 5, 5));
         gridPanel.setBackground(Color.BLACK);
 
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                buttons[i][j] = new JButton(" ");
-                buttons[i][j].setFont(new Font("Arial", Font.BOLD, 60));
-                buttons[i][j].setBackground(Color.WHITE);
-
-                int finalI = i;
-                int finalJ = j;
-
-                buttons[i][j].addActionListener(e -> {
-                    if (myTurn && buttons[finalI][finalJ].getText().equals(" ")) {
-                        try {
-                            stopCountdownTimer();
-                            server.makeMove(playerName, finalI, finalJ);
-                            myTurn = false;
-                            stopCountdownTimer();
-                            gameInfo.setText("Rank#" + opponentRank + " " +opponentName + "'s turn (" + opponentChar + ")");
-
-                        } catch (RemoteException remoteException) {
-                            remoteException.printStackTrace();
-                        }
-                    }
-                });
-
-                gridPanel.add(buttons[i][j]);
+                JButton button = createGridButton(i, j);
+                gridPanel.add(button);
             }
         }
 
-        boardPanel.add(gameInfo, BorderLayout.NORTH);
-        boardPanel.add(gridPanel, BorderLayout.CENTER);
+        return gridPanel;
+    }
 
-        // Chat Area
+    private JButton createGridButton(int i, int j) {
+        buttons[i][j] = new JButton(" ");
+        buttons[i][j].setFont(new Font("Arial", Font.BOLD, 60));
+        buttons[i][j].setBackground(Color.WHITE);
+
+        buttons[i][j].addActionListener(e -> {
+            if (myTurn && buttons[i][j].getText().equals(" ")) {
+                try {
+                    stopCountdownTimer();
+                    server.makeMove(playerName, i, j);
+                    myTurn = false;
+                    stopCountdownTimer();
+                    gameInfo.setText("Rank#" + opponentRank + " " +opponentName + "'s turn (" + opponentChar + ")");
+
+                } catch (RemoteException remoteException) {
+                    remoteException.printStackTrace();
+                }
+            }
+        });
+
+        return buttons[i][j];
+    }
+
+    private void setupChatPanel() {
+        JPanel chatPanel = new JPanel(new BorderLayout());
+        chatPanel.setPreferredSize(new Dimension(250, frame.getHeight()));
+
+        JLabel chatTitle = new JLabel("Player Chat");
+        chatTitle.setHorizontalAlignment(JLabel.CENTER);
+
         chatArea = new JTextArea();
         chatArea.setEditable(false);
         JScrollPane chatScrollPane = new JScrollPane(chatArea);
 
-        // Chat input field and send button
         chatInput = new JTextField(15);
-        sendButton = new JButton("Send");
-        sendButton.addActionListener(e -> sendMessage());
+        sendButton = createSendButton();
 
         JPanel chatBottomPanel = new JPanel(new BorderLayout());
         chatBottomPanel.add(chatInput, BorderLayout.CENTER);
         chatBottomPanel.add(sendButton, BorderLayout.EAST);
 
-        JPanel chatPanel = new JPanel(new BorderLayout());
-        chatPanel.setPreferredSize(new Dimension(250, frame.getHeight()));
-
-
-        JLabel chatTitle = new JLabel("Player Chat");
-        chatTitle.setHorizontalAlignment(JLabel.CENTER);
         chatPanel.add(chatTitle, BorderLayout.NORTH);
-
         chatPanel.add(chatScrollPane, BorderLayout.CENTER);
         chatPanel.add(chatBottomPanel, BorderLayout.SOUTH);
 
-        frame.getContentPane().add(timerQuitPanel, BorderLayout.WEST);
-        frame.getContentPane().add(boardPanel, BorderLayout.CENTER);
         frame.getContentPane().add(chatPanel, BorderLayout.EAST);
-
-        frame.pack();
-        frame.setVisible(true);
     }
+
+    private JButton createSendButton() {
+        JButton sendButton = new JButton("Send");
+        sendButton.addActionListener(e -> sendMessage());
+        return sendButton;
+    }
+
 
     private void setupCountdownTimer() {
         stopCountdownTimer();
@@ -211,11 +239,15 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
                 if (timeLeft <= 0) {
                     makeRandomMove();
-                    countdownTimer.cancel();
+                    try {
+                        countdownTimer.cancel();
+                    } catch (NullPointerException e) {
+                    }
                 }
             }
         }, 0, 1000);
     }
+
 
     private void stopCountdownTimer() {
         if (countdownTimer != null) {
@@ -227,25 +259,29 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     private void makeRandomMove() {
         List<Point> emptyCells = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (buttons[i][j].getText().equals(" ")) {
-                    emptyCells.add(new Point(i, j));
+
+        try {
+            char[][] board = server.getCurrentBoardState(playerName);
+
+            for (int i = 0; i < board.length; i++) {
+                for (int j = 0; j < board[i].length; j++) {
+                    if (board[i][j] == ' ') emptyCells.add(new Point(i, j));
                 }
             }
-        }
-        if (!emptyCells.isEmpty()) {
-            Point randomMove = emptyCells.get(new Random().nextInt(emptyCells.size()));
-            try {
+
+            if (!emptyCells.isEmpty()) {
+                Point randomMove = emptyCells.get(new Random().nextInt(emptyCells.size()));
                 server.makeMove(playerName, randomMove.x, randomMove.y);
                 myTurn = false;
+                gameInfo.setText("Rank#" + opponentRank + " " + opponentName + "'s turn (" + opponentChar + ")");
                 stopCountdownTimer();
-
-            } catch (RemoteException ex) {
-                ex.printStackTrace();
             }
+
+        } catch (RemoteException ex) {
+            ex.printStackTrace();
         }
     }
+
 
     private void sendMessage() {
         String message = chatInput.getText().trim();
@@ -383,7 +419,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                 char[][] board = server.getCurrentBoardState(playerName);
                 displayBoard(board);
 
-                // Decide and Notify whose turn it is
                 if (myTurn) {
                     notifyTurn();
                 } else {

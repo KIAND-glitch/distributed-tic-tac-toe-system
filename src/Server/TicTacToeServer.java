@@ -9,7 +9,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TicTacToeServer extends UnicastRemoteObject implements ServerInterface {
-
     private HashMap<String, PlayerInfo> players = new HashMap<>();
     private Queue<String> waitingPlayers = new LinkedList<>();
     private HashMap<String, GameSession> activeGames = new HashMap<>();
@@ -49,7 +48,7 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 newPlayer = previousGame.getPlayers().get(playerName);
                 newPlayer.setClient(client);
                 previousGame.reconnection(playerName, newPlayer);
-                String otherPlayer = previousGame.getPlayers().keySet().stream().filter(p -> !p.equals(playerName)).findFirst().get();
+                String otherPlayer = previousGame.getOtherPlayer(playerName);
                 try {
                     previousGame.getPlayers().get(playerName).client.resumeGame();
                     previousGame.getPlayers().get(otherPlayer).client.resumeGame();
@@ -172,7 +171,7 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                     public void run() {
                         terminateGameDueToDisconnection(playerName, otherPlayer);
                     }
-                }, 30000);  // 30 seconds
+                }, 30000);
 
                 disconnectionTimers.put(playerName, disconnectionTimer);
 
@@ -197,7 +196,6 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         }
         disconnectionTimers.remove(playerName);
     }
-
 
     public static void main(String[] args) {
         try {
