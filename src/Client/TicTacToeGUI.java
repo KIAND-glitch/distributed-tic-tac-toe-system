@@ -1,7 +1,5 @@
 package Client;
 
-import Server.ServerInterface;
-
 import javax.swing.*;
 import java.awt.*;
 import java.rmi.RemoteException;
@@ -10,7 +8,7 @@ import java.util.List;
 import java.util.Timer;
 
 public class TicTacToeGUI {
-    private TicTacToeClientNew client;
+    private TicTacToeClient client;
     private JFrame frame;
     private JButton[][] buttons = new JButton[3][3];
     private JTextArea chatArea;
@@ -22,7 +20,7 @@ public class TicTacToeGUI {
     private JLabel gameInfo;
     private Timer pauseTimer;
 
-    public TicTacToeGUI(TicTacToeClientNew client) {
+    public TicTacToeGUI(TicTacToeClient client) {
         this.client = client;
         createAndShowGUI();
     }
@@ -130,21 +128,23 @@ public class TicTacToeGUI {
 
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                JButton button = createGridButtons(i, j);
-                gridPanel.add(button);
+                createGridButtons(i, j, gridPanel);
             }
         }
 
         return gridPanel;
     }
 
-    private JButton createGridButtons(int i, int j) {
+    private void createGridButtons(int i, int j, JPanel gridPanel) {
         buttons[i][j] = new JButton(" ");
         buttons[i][j].setFont(new Font("Arial", Font.BOLD, 60));
         buttons[i][j].setBackground(Color.WHITE);
 
         buttons[i][j].addActionListener(e -> {
+            System.out.println("condition 1" + client.isMyTurn());
+            System.out.println("condition 2" + buttons[i][j].getText().equals(" "));
             if (client.isMyTurn() && buttons[i][j].getText().equals(" ")) {
+                System.out.println("Clicked" + i + j);
                 try {
                     client.getServer().makeMove(client.getPlayerName(), i, j);
                     client.setMyTurn(false);
@@ -157,7 +157,7 @@ public class TicTacToeGUI {
             }
         });
 
-        return buttons[i][j];
+        gridPanel.add(buttons[i][j]);
     }
 
     private void makeRandomMove() {
