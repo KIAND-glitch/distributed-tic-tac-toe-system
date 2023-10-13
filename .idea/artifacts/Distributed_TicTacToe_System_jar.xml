@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Distributed-TicTacToe-System:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Distributed_TicTacToe_System_jar</output-path>
+    <root id="archive" name="Distributed-TicTacToe-System.jar">
+      <element id="module-output" name="Distributed-TicTacToe-System" />
+    </root>
+  </artifact>
+</component>

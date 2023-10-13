@@ -1,11 +1,11 @@
 package Server;
 
 import Client.ClientCallback;
-import Client.TicTacToeClient;
 
 import java.rmi.ConnectException;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +17,8 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
     private HashMap<String, PlayerRanking> playerRankings = new HashMap<>();
     private ConcurrentHashMap<String, Long> lastHeartbeat = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Timer> disconnectionTimers = new ConcurrentHashMap<>();
+    private static final int DISCONNECTION_BANDWIDTH_MS = 3000;
+    private static final int MAX_DISCONNECTION_TIME_MS = 30000;
 
     public TicTacToeServer() throws RemoteException {
         super();
@@ -24,7 +26,7 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             while (true) {
                 long now = System.currentTimeMillis();
                 lastHeartbeat.forEach((player, timestamp) -> {
-                    if (now - timestamp > 3000) {
+                    if (now - timestamp > DISCONNECTION_BANDWIDTH_MS) {
                         try {
                             handleClientDisconnection(player);
                         } catch (RemoteException e) {
@@ -35,18 +37,6 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                }
-            }
-        }).start();
-
-        // Periodically print the leaderboard
-        new Thread(() -> {
-            while (true) {
-                printLeaderboard();
-                try {
-                    Thread.sleep(10000); // 10 seconds interval
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
         }).start();
@@ -134,9 +124,10 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         if (gameSession != null) {
             String otherPlayer = gameSession.getOtherPlayer(playerName);
             activeGames.remove(playerName);
+            activeGames.remove(otherPlayer);
             if (!gameOver) {
                 gameSession.getPlayers().get(otherPlayer).client.updateGameInfo(playerName + " quit! Player '" + otherPlayer + "' wins");
-                matchPlayers(otherPlayer, gameSession.getPlayers().get(otherPlayer));
+                gameSession.getPlayers().get(otherPlayer).client.stopGameCountdownTimer();
                 updatePointsAfterGame(otherPlayer, 5);
                 gameSession.getPlayers().get(otherPlayer).client.refreshBoard();
                 gameSession.getPlayers().get(otherPlayer).client.askToPlayAgain();
@@ -185,10 +176,8 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
             client.handlePause();
             return true;
         } catch (ConnectException e) {
-            // Client is not available.
             return false;
         } catch (RemoteException e) {
-            // Other RMI errors. Handle or log this as per your needs.
             e.printStackTrace();
             return false;
         }
@@ -200,20 +189,23 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
 
         if (gameSession != null) {
             String otherPlayer = gameSession.getOtherPlayer(playerName);
-
-            // Only proceed if the other player's client is still connected.
+            // check if the other player's client is still connected.
             if (invokeHandlePause(gameSession.getPlayers().get(otherPlayer).client)) {
                 Timer disconnectionTimer = new Timer();
                 disconnectionTimer.schedule(new TimerTask() {
                     @Override
                     public void run() {
                         terminateGameDueToDisconnection(playerName, otherPlayer);
+                        try {
+                            gameSession.getPlayers().get(otherPlayer).client.askToPlayAgain();
+                        } catch (RemoteException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
-                }, 30000);
-
+                }, MAX_DISCONNECTION_TIME_MS);
                 disconnectionTimers.put(playerName, disconnectionTimer);
             } else {
-                // Handle scenario where both players are disconnected.
+                // both players are disconnected.
                 activeGames.remove(playerName);
                 activeGames.remove(otherPlayer);
                 drawGameDisconnection(playerName, otherPlayer);
@@ -240,26 +232,25 @@ public class TicTacToeServer extends UnicastRemoteObject implements ServerInterf
         disconnectionTimers.remove(playerName);
     }
 
-    private void printLeaderboard() {
-        List<Map.Entry<String, PlayerRanking>> sortedRankings = new ArrayList<>(playerRankings.entrySet());
-
-        sortedRankings.sort((entry1, entry2) -> Integer.compare(entry2.getValue().getPoints(), entry1.getValue().getPoints()));
-
-        System.out.println("------ Leaderboard ------");
-        for (int i = 0; i < sortedRankings.size(); i++) {
-            String player = sortedRankings.get(i).getKey();
-            int points = sortedRankings.get(i).getValue().getPoints();
-            System.out.println((i + 1) + ". " + player + " - " + points + " points");
-        }
-        System.out.println("-------------------------");
-    }
-
-
     public static void main(String[] args) {
+        if (args.length < 2) {
+            System.err.println("Usage: java TicTacToeServer <ip> <port>");
+            System.exit(1);
+        }
+
+        String ip = args[0];
+        int port;
+        try {
+            port = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            System.err.println("Error: Invalid port number.");
+            return;
+        }
         try {
             TicTacToeServer server = new TicTacToeServer();
-            Naming.rebind("rmi://localhost/TicTacToeServer", server);
-            System.out.println("TicTacToe Server is running...");
+            LocateRegistry.createRegistry(port);
+            Naming.bind("rmi://" + ip + ":" + port + "/TicTacToeServer", server);
+            System.out.println("TicTacToe Server is running on " + ip + ":" + port);
         } catch (Exception e) {
             e.printStackTrace();
         }

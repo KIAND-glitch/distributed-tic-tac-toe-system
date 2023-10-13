@@ -23,11 +23,11 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     private boolean myTurn = false;
     private TicTacToeGUI gui;
 
-    public TicTacToeClient(String playerName) throws Exception {
+    public TicTacToeClient(String playerName, String serverIP, int serverPort) throws Exception {
         this.playerName = playerName;
 
         try {
-            server = (ServerInterface) Naming.lookup("rmi://localhost/TicTacToeServer");
+            server = (ServerInterface) Naming.lookup("rmi://" + serverIP + ":" + serverPort + "/TicTacToeServer");
 
             try {
                 UnicastRemoteObject.unexportObject(this, true);
@@ -54,7 +54,7 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
                         dialog.dispose();
                         System.exit(0);
                     }
-                }, 5000); // 5 seconds
+                }, 5000);
 
                 dialog.setVisible(true);
             });
@@ -187,20 +187,31 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
     }
 
     public static void main(String[] args) {
-        if (args.length < 1) {
-            System.out.println("Usage: java TicTacToeClient <username>");
+        if (args.length < 3) {
+            System.out.println("Usage: java TicTacToeClient <username> <server_ip> <server_port>");
             return;
         }
         String playerName = args[0];
+        String serverIP = args[1];
+        int serverPort;
         try {
-            new TicTacToeClient(playerName);
+            serverPort = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid port number provided.");
+            return;
+        }
+        try {
+            new TicTacToeClient(playerName, serverIP, serverPort);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // getters and setters
+    public void stopGameCountdownTimer() throws RemoteException {
+        gui.stopCountdownTimer();
+    }
 
+    // getters and setters
     public ServerInterface getServer() {
         return server;
     }
@@ -219,10 +230,6 @@ public class TicTacToeClient extends UnicastRemoteObject implements ClientCallba
 
     public String getOpponentName(){
         return opponentName;
-    }
-
-    public Character getPlayerChar() {
-        return playerChar;
     }
 
     public Character getOpponentChar() {

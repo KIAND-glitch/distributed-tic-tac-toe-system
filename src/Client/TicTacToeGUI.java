@@ -19,6 +19,7 @@ public class TicTacToeGUI {
     private JLabel timerLabel;
     private JLabel gameInfo;
     private Timer pauseTimer;
+    private static final int COUNTDOWN_INTERVAL = 1000;
 
     public TicTacToeGUI(TicTacToeClient client) {
         this.client = client;
@@ -46,6 +47,10 @@ public class TicTacToeGUI {
         countdownTimer = new Timer();
 
         timeLeft = 20;
+        if (isPaused) {
+            timeLeft = remainingTime;
+            isPaused = false;
+        }
         timerLabel.setText(String.valueOf(timeLeft));
         countdownTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -61,7 +66,7 @@ public class TicTacToeGUI {
                     }
                 }
             }
-        }, 0, 1000);
+        }, 0, COUNTDOWN_INTERVAL);
     }
 
     private void setupTimerQuitPanel() {
@@ -141,10 +146,7 @@ public class TicTacToeGUI {
         buttons[i][j].setBackground(Color.WHITE);
 
         buttons[i][j].addActionListener(e -> {
-            System.out.println("condition 1" + client.isMyTurn());
-            System.out.println("condition 2" + buttons[i][j].getText().equals(" "));
             if (client.isMyTurn() && buttons[i][j].getText().equals(" ")) {
-                System.out.println("Clicked" + i + j);
                 try {
                     char result = client.getServer().makeMove(client.getPlayerName(), i, j);
                     client.setMyTurn(false);
@@ -235,6 +237,10 @@ public class TicTacToeGUI {
         }
     }
 
+    private int remainingTime = 20;
+    private boolean isPaused = false;
+
+
     public void stopCountdownTimer() {
         if (countdownTimer != null) {
             countdownTimer.cancel();
@@ -269,7 +275,11 @@ public class TicTacToeGUI {
 
     public void handleGamePause() {
         gameInfo.setText("Game paused, Timer: 30");
-        stopCountdownTimer();
+        remainingTime = timeLeft;
+        if (countdownTimer != null) {
+            countdownTimer.cancel();
+        }
+        isPaused = true;
         sendButton.setEnabled(false);
 
         if (pauseTimer != null) {
@@ -288,7 +298,7 @@ public class TicTacToeGUI {
                     pauseTimer.cancel();
                 }
             }
-        }, 0, 1000);
+        }, 0, COUNTDOWN_INTERVAL);
     }
 
     public boolean showPlayAgainDialog() {
